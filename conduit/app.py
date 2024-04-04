@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from conduit.api.middlewares import RequestIDMiddleware, RateLimitingMiddleware
+from conduit.api.middlewares import RateLimitingMiddleware, RequestIDMiddleware
 from conduit.api.router import router as api_router
 from conduit.core.config import get_app_settings
 from conduit.core.exceptions import add_exception_handlers
-from conduit.core.logging import configure_logger, logger
+from conduit.core.logging import configure_logger
 
 
 def create_app() -> FastAPI:
@@ -23,16 +23,14 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    application.add_middleware(RequestIDMiddleware)
     application.add_middleware(RateLimitingMiddleware)
+    application.add_middleware(RequestIDMiddleware)
 
     application.include_router(api_router, prefix="/api/v1")
 
     add_exception_handlers(app=application)
 
     configure_logger()
-
-    logger.info("Starting application")
 
     return application
 

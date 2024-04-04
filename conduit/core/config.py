@@ -8,7 +8,7 @@ from conduit.core.settings.test import TestAppSettings
 
 AppEnvType = DevAppSettings | TestAppSettings | ProdAppSettings
 
-environments: dict[str, type[AppEnvType]] = {
+environments: dict[str, type[AppEnvType]] = {  # type: ignore
     AppEnvTypes.development: DevAppSettings,
     AppEnvTypes.testing: TestAppSettings,
     AppEnvTypes.production: ProdAppSettings,
@@ -22,4 +22,4 @@ def get_app_settings() -> AppSettings:
     """
     app_env = BaseAppSettings().app_env
     config = environments[app_env]
-    return config()
+    return config()  # type: ignore

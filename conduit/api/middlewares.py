@@ -1,6 +1,7 @@
 import uuid
 from contextvars import ContextVar
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
+from typing import Any, Unpack
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
@@ -32,10 +33,10 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
     rate_limit_duration = timedelta(minutes=1)
     rate_limit_requests = 10
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Unpack[tuple[Any]], **kwargs: Any):
         super().__init__(*args, **kwargs)
         # Dictionary to store request counts for each IP.
-        self.request_counts = {}
+        self.request_counts: dict[str, tuple[int, datetime]] = {}
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint

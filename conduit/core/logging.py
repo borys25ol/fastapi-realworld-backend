@@ -6,14 +6,14 @@ from structlog.typing import EventDict, Processor
 from conduit.api.middlewares import REQUEST_ID_VAR
 from conduit.core.config import get_app_settings
 
-__all__ = ["logger", "configure_logger"]
+__all__ = ["configure_logger"]
 
 DEFAULT_LOGGER_NAME = "conduit-api"
 
 settings = get_app_settings()
 
 
-def rename_event_key(_, __, event_dict: EventDict) -> EventDict:
+def rename_event_key(_: logging.Logger, __: str, event_dict: EventDict) -> EventDict:
     """
     Rename `event` field to `message`.
     """
@@ -21,7 +21,9 @@ def rename_event_key(_, __, event_dict: EventDict) -> EventDict:
     return event_dict
 
 
-def drop_color_message_key(_, __, event_dict: EventDict) -> EventDict:
+def drop_color_message_key(
+    _: logging.Logger, __: str, event_dict: EventDict
+) -> EventDict:
     """
     Uvicorn logs the message a second time in the extra `color_message`, but we don't
     need it.
@@ -31,7 +33,9 @@ def drop_color_message_key(_, __, event_dict: EventDict) -> EventDict:
     return event_dict
 
 
-def add_request_id_to_logs(_, __, event_dict: EventDict) -> EventDict:
+def add_request_id_to_logs(
+    _: logging.Logger, __: str, event_dict: EventDict
+) -> EventDict:
     """
     Add request id to logs dictionary
     """
@@ -41,7 +45,7 @@ def add_request_id_to_logs(_, __, event_dict: EventDict) -> EventDict:
     return event_dict
 
 
-def configure_logger(json_logs: bool = False):
+def configure_logger(json_logs: bool = False) -> None:
     timestamper = structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S")
 
     shared_processors: list[Processor] = [
@@ -104,9 +108,6 @@ def _configure_default_logging_by_custom(
     for _log in ["uvicorn", "uvicorn.error", "uvicorn.access"]:
         # Clear the log handlers for uvicorn loggers, and enable propagation
         # so the messages are caught by our root logger and formatted correctly
-        # by structlog
+        # by structlog.
         logging.getLogger(_log).handlers.clear()
         logging.getLogger(_log).propagate = True
-
-
-logger = structlog.stdlib.get_logger()
