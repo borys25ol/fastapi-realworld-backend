@@ -52,3 +52,9 @@ lint:
 	isort conduit --diff
 	black conduit --check
 	mypy --namespace-packages -p "conduit" --config-file setup.cfg
+
+migration:
+	alembic revision --autogenerate -m "$(message)"
+
+migrate:
+	alembic upgrade head
