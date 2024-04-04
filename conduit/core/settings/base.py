@@ -29,8 +29,8 @@ class BaseAppSettings(BaseSettings):
         env_file = ".env"
         extra = Extra.ignore
 
+    @computed_field  # type: ignore
     @property
-    @computed_field
     def sql_db_uri(self) -> str:
         return (
             f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"

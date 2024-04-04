@@ -19,6 +19,6 @@ class User(Base):
     email: Mapped[str] = mapped_column(unique=True)
     password_hash: Mapped[str]
     bio: Mapped[str]
-    image_url: Mapped[str]
+    image_url: Mapped[str] = mapped_column(nullable=True)
     created_at: Mapped[datetime]
     updated_at: Mapped[datetime] = mapped_column(nullable=True)
