@@ -8,8 +8,8 @@ COPY requirements.txt version.py ./
 RUN pip install -U pip
 RUN pip install -r requirements.txt
 
-ENV PYTHONPATH "${PYTHONPATH}:/main"
+ENV PYTHONPATH "${PYTHONPATH}:/conduit"
 
-COPY main main/
+COPY conduit conduit/
 
 EXPOSE 8080

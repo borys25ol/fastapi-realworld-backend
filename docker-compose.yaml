@@ -5,9 +5,24 @@ services:
     build: .
     container_name: conduit-api
     command: uvicorn conduit.app:app --host 0.0.0.0 --port 8080
+    environment:
+      POSTGRES_HOST: postgres
     env_file:
       - .env.local
     ports:
       - "8080:8080"
     volumes:
-      - .:/main
+      - .:/conduit
+
+  postgres:
+    image: postgres:16
+    container_name: conduit-postgres
+    env_file:
+      - .env.local
+    ports:
+      - ${POSTGRES_PORT}:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $POSTGRES_DB -U $POSTGRES_USER"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
