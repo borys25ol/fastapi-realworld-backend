@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  api:
+    build: .
+    container_name: conduit-api
+    command: uvicorn conduit.app:app --host 0.0.0.0 --port 8080
+    env_file:
+      - .env.local
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/main

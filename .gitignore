@@ -1,0 +1,13 @@
+.ve
+.idea
+.DS_Store
+__pycache__
+*.pyc
+.env
+.env.dev
+.env.test
+.env.local
+.vscode
+.coverage
+google_credentials.json
+./test.py

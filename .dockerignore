@@ -1,0 +1,9 @@
+.ve
+.idea
+.DS_Store
+.git
+__pycache__
+*.pyc
+*.pyo
+logs
+.coverage
