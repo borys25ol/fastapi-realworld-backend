@@ -1,5 +1,6 @@
 from pydantic import Extra, computed_field
 from pydantic_settings import BaseSettings
+from sqlalchemy import URL
 
 
 class AppEnvTypes:
@@ -35,8 +36,12 @@ class BaseAppSettings(BaseSettings):
 
     @computed_field  # type: ignore
     @property
-    def sql_db_uri(self) -> str:
-        return (
-            f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"
-            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+    def sql_db_uri(self) -> URL:
+        return URL.create(
+            drivername="postgresql+asyncpg",
+            username=self.postgres_user,
+            password=self.postgres_password,
+            host=self.postgres_host,
+            port=self.postgres_port,
+            database=self.postgres_db,
         )

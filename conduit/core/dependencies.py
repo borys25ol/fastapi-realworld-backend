@@ -5,14 +5,18 @@ Module with project dependencies.
 from typing import Annotated
 
 from fastapi import Depends
-from fastapi.security import APIKeyHeader
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.core.container import container
+from conduit.core.security import HTTPTokenHeader
 from conduit.services.auth import UserAuthService
 from conduit.services.jwt import JWTTokenService
 
-token_security = APIKeyHeader(name="Authorization")
+token_security = HTTPTokenHeader(
+    name="Authorization",
+    scheme_name="JWTToken",
+    description="Token Format: `Token <JWT>`. Example: `Token 123456789`",
+)
 
 JWTToken = Annotated[str, Depends(token_security)]
 DBSession = Annotated[AsyncSession, Depends(container.session)]

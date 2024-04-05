@@ -14,7 +14,7 @@ from conduit.domain.dtos.user import (
 class IUserAuthService(abc.ABC):
 
     @abc.abstractmethod
-    async def get_current_user(self, session: Any, auth_token: str) -> UserDTO: ...
+    async def get_current_user(self, session: Any, token: str) -> UserDTO: ...
 
     @abc.abstractmethod
     async def sign_up_user(
