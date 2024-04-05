@@ -7,8 +7,12 @@ from conduit.core.config import get_app_settings
 from conduit.core.settings.base import AppEnvTypes, BaseAppSettings
 from conduit.domain.mapper import IModelMapper
 from conduit.domain.repositories.user import IUserRepository
+from conduit.domain.services.auth import IUserAuthService
+from conduit.domain.services.jwt import IJWTTokenService
 from conduit.infrastructure.mappers.user import UserModelMapper
 from conduit.infrastructure.repositories.user import UserRepository
+from conduit.services.auth import UserAuthService
+from conduit.services.jwt import JWTTokenService
 
 
 class Container:
@@ -19,11 +23,12 @@ class Container:
         self._engine = create_async_engine(
             url=settings.sql_db_uri,
             echo=self._settings.app_env != AppEnvTypes.production,
+            isolation_level="AUTOCOMMIT",
         )
         self._session = async_sessionmaker(bind=self._engine)
 
     @contextlib.asynccontextmanager
-    async def db_session(self) -> AsyncIterator[AsyncSession]:
+    async def context_session(self) -> AsyncIterator[AsyncSession]:
         session = self._session()
         try:
             yield session
@@ -33,12 +38,31 @@ class Container:
         finally:
             await session.close()
 
+    async def session(self) -> AsyncIterator[AsyncSession]:
+        async with self._session() as session:
+            try:
+                yield session
+            finally:
+                await session.close()
+
     @staticmethod
     def user_model_mapper() -> IModelMapper:
         return UserModelMapper()
 
     def user_repository(self) -> IUserRepository:
         return UserRepository(user_mapper=self.user_model_mapper())
+
+    def jwt_service(self) -> IJWTTokenService:
+        return JWTTokenService(
+            secret_key=self._settings.jwt_secret_key,
+            token_expiration_minutes=self._settings.jwt_token_expiration_minutes,
+            algorithm=self._settings.jwt_algorithm,
+        )
+
+    def user_auth_service(self) -> IUserAuthService:
+        return UserAuthService(
+            user_repo=self.user_repository(), jwt_service=self.jwt_service()
+        )
 
 
 container = Container(settings=get_app_settings())

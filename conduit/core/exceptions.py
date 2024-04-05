@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -47,6 +48,34 @@ class TagNotFoundException(BaseInternalException):
     _status_code = 404
 
 
+class EmailAlreadyTakenException(BaseInternalException):
+    """Exception raised when email was found in database while registration."""
+
+    _status_code = 400
+    _message = "User with this email already exists."
+
+
+class UserNameAlreadyTakenException(BaseInternalException):
+    """Exception raised when username was found in database while registration."""
+
+    _status_code = 400
+    _message = "User with this username already exists."
+
+
+class IncorrectLoginInputException(BaseInternalException):
+    """Exception raised when email or password was incorrect while login."""
+
+    _status_code = 400
+    _message = "Incorrect email or password."
+
+
+class IncorrectJWTTokenException(BaseInternalException):
+    """Exception raised when user provided invalid JWT token."""
+
+    _status_code = 403
+    _message = "Invalid JWT token."
+
+
 class RateLimitExceededException(BaseInternalException):
     """Exception raised when rate limit exceeded during specific time."""
 
@@ -64,7 +93,7 @@ def add_internal_exception_handler(app: FastAPI) -> None:
         _: Request, exc: BaseInternalException
     ) -> JSONResponse:
         return JSONResponse(
-            status_code=exc.status_code,
+            status_code=exc.get_status_code(),
             content={
                 "status": "error",
                 "status_code": exc.get_status_code(),

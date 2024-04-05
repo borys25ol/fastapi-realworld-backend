@@ -26,7 +26,7 @@ def create_app() -> FastAPI:
     application.add_middleware(RateLimitingMiddleware)
     application.add_middleware(RequestIDMiddleware)
 
-    application.include_router(api_router, prefix="/api/v1")
+    application.include_router(api_router, prefix="/api")
 
     add_exception_handlers(app=application)
 

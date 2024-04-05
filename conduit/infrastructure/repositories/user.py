@@ -7,7 +7,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from conduit.domain.dtos.user import CreateUserDTO, UpdateUserDTO, UserDTO
 from conduit.domain.mapper import IModelMapper
 from conduit.domain.repositories.user import IUserRepository
-from conduit.domain.specifications import ISpecification
 from conduit.infrastructure.models import User
 
 
@@ -26,6 +25,7 @@ class UserRepository(IUserRepository):
                 username=create_item.username,
                 email=create_item.email,
                 password_hash=create_item.password,
+                image_url="https://api.realworld.io/images/smiley-cyrus.jpeg",
                 bio="",
                 created_at=datetime.now(),
             )
@@ -39,10 +39,10 @@ class UserRepository(IUserRepository):
         if user := await session.scalar(query):
             return self._user_mapper.to_dto(user)
 
-    async def get_by_id(self, session: AsyncSession, user_id: int) -> UserDTO | None:
+    async def get_by_id(self, session: AsyncSession, user_id: int) -> UserDTO:
         query = select(User).where(User.id == user_id)
-        if user := await session.scalar(query):
-            return self._user_mapper.to_dto(user)
+        user = await session.scalar(query)
+        return self._user_mapper.to_dto(user)
 
     async def get_by_ids(
         self, session: AsyncSession, ids: Collection[int]
@@ -58,23 +58,20 @@ class UserRepository(IUserRepository):
         if user := await session.scalar(query):
             return self._user_mapper.to_dto(user)
 
-    async def get_all(
-        self, session: AsyncSession, specification: ISpecification | None = None
-    ) -> list[UserDTO]:
+    async def get_all(self, session: AsyncSession) -> list[UserDTO]:
         query = select(User)
         users = await session.scalars(query)
         return [self._user_mapper.to_dto(user) for user in users]
 
     async def update(
         self, session: AsyncSession, user_id: int, update_item: UpdateUserDTO
-    ) -> UserDTO | None:
+    ) -> UserDTO:
         query = (
             update(User)
             .where(User.id == user_id)
             .values(updated_at=datetime.now())
             .returning(User)
         )
-
         if update_item.username is not None:
             query = query.values(username=update_item.username)
         if update_item.email is not None:
@@ -86,5 +83,5 @@ class UserRepository(IUserRepository):
         if update_item.image_url is not None:
             query = query.values(image_url=update_item.image_url)
 
-        if updated_user := await session.scalar(query):
-            return self._user_mapper.to_dto(updated_user)
+        updated_user = await session.scalar(query)
+        return self._user_mapper.to_dto(updated_user)

@@ -25,6 +25,10 @@ class BaseAppSettings(BaseSettings):
     postgres_password: str
     postgres_db: str
 
+    jwt_secret_key: str
+    jwt_token_expiration_minutes: int = 60 * 24 * 7  # one week.
+    jwt_algorithm: str = "HS256"
+
     class Config:
         env_file = ".env"
         extra = Extra.ignore
