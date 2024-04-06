@@ -1,7 +1,3 @@
-"""
-Module with project dependencies.
-"""
-
 from typing import Annotated
 
 from fastapi import Depends
@@ -14,8 +10,8 @@ from conduit.services.jwt import JWTTokenService
 
 token_security = HTTPTokenHeader(
     name="Authorization",
-    scheme_name="JWTToken",
-    description="Token Format: `Token <JWT>`. Example: `Token 123456789`",
+    scheme_name="JWT Token",
+    description="Token Format: `Token xxxxxx.yyyyyyy.zzzzzz`",
 )
 
 JWTToken = Annotated[str, Depends(token_security)]
