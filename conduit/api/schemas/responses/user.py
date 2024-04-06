@@ -1,9 +1,18 @@
 from pydantic import BaseModel
 
-from conduit.domain.dtos.user import CreatedUserDTO, LoggedInUserDTO, UserDTO
+from conduit.domain.dtos.user import (
+    CreatedUserDTO,
+    LoggedInUserDTO,
+    UpdatedUserDTO,
+    UserDTO,
+)
 
 
-class LoggedInUserData(BaseModel):
+class UserIDData(BaseModel):
+    id: int
+
+
+class UserBaseData(BaseModel):
     email: str
     username: str
     bio: str
@@ -11,11 +20,19 @@ class LoggedInUserData(BaseModel):
     token: str
 
 
-class RegisteredUserData(LoggedInUserData):
-    id: int
+class LoggedInUserData(UserBaseData):
+    pass
 
 
-class CurrentUserData(RegisteredUserData):
+class RegisteredUserData(UserIDData, UserBaseData):
+    pass
+
+
+class CurrentUserData(UserIDData, UserBaseData):
+    pass
+
+
+class UpdatedUserData(UserIDData, UserBaseData):
     pass
 
 
@@ -64,6 +81,23 @@ class CurrentUserResponse(BaseModel):
                 username=dto.username,
                 bio=dto.bio,
                 image=dto.image_url,
+                token=token,
+            )
+        )
+
+
+class UpdatedUserResponse(BaseModel):
+    user: UpdatedUserData
+
+    @classmethod
+    def from_dto(cls, dto: UpdatedUserDTO, token: str) -> "UpdatedUserResponse":
+        return UpdatedUserResponse(
+            user=UpdatedUserData(
+                id=dto.id,
+                email=dto.email,
+                username=dto.username,
+                bio=dto.bio,
+                image=dto.image,
                 token=token,
             )
         )

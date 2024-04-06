@@ -2,7 +2,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.core.exceptions import (
     EmailAlreadyTakenException,
-    IncorrectJWTTokenException,
     IncorrectLoginInputException,
     UserNameAlreadyTakenException,
 )
@@ -13,6 +12,7 @@ from conduit.domain.dtos.user import (
     CreateUserDTO,
     LoggedInUserDTO,
     LoginUserDTO,
+    UpdatedUserDTO,
     UpdateUserDTO,
     UserDTO,
 )
@@ -30,10 +30,10 @@ class UserAuthService(IUserAuthService):
 
     async def get_current_user(self, session: AsyncSession, token: str) -> UserDTO:
         token_dto = AuthTokenDTO(token=token)
-        user_id = self._jwt_service.get_user_id(token_dto=token_dto)
-        if not user_id:
-            raise IncorrectJWTTokenException()
-        return await self._user_repo.get_by_id(session=session, user_id=user_id)
+        jwt_user = self._jwt_service.get_user_info_from_token(token_dto=token_dto)
+        return await self._user_repo.get_by_id(
+            session=session, user_id=jwt_user.user_id
+        )
 
     async def sign_up_user(
         self, session: AsyncSession, user_to_create: CreateUserDTO
@@ -50,7 +50,6 @@ class UserAuthService(IUserAuthService):
 
         user = await self._user_repo.create(session=session, create_item=user_to_create)
         auth_token = self._jwt_service.generate_token(user=user)
-
         return CreatedUserDTO(
             id=user.id,
             email=user.email,
@@ -84,8 +83,32 @@ class UserAuthService(IUserAuthService):
         )
 
     async def update_user(
-        self, session: AsyncSession, user_id: int, user_to_update: UpdateUserDTO
-    ) -> UserDTO:
-        return await self._user_repo.update(
-            session=session, user_id=user_id, update_item=user_to_update
+        self,
+        session: AsyncSession,
+        current_user: UserDTO,
+        user_to_update: UpdateUserDTO,
+    ) -> UpdatedUserDTO:
+        if user_to_update.username and user_to_update.username != current_user.username:
+            if await self._user_repo.get_by_username(
+                session=session, username=user_to_update.username
+            ):
+                raise UserNameAlreadyTakenException()
+
+        if user_to_update.email and user_to_update.email != current_user.username:
+            if await self._user_repo.get_by_email(
+                session=session, email=user_to_update.email
+            ):
+                raise EmailAlreadyTakenException()
+
+        updated_user = await self._user_repo.update(
+            session=session, user_id=current_user.id, update_item=user_to_update
+        )
+        auth_token = self._jwt_service.generate_token(user=updated_user)
+        return UpdatedUserDTO(
+            id=updated_user.id,
+            email=updated_user.email,
+            username=updated_user.username,
+            bio=updated_user.bio,
+            image=updated_user.image_url,
+            token=auth_token.token,
         )
