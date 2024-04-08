@@ -6,13 +6,17 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from conduit.core.config import get_app_settings
 from conduit.core.settings.base import AppEnvTypes, BaseAppSettings
 from conduit.domain.mapper import IModelMapper
+from conduit.domain.repositories.follower import IFollowerRepository
 from conduit.domain.repositories.user import IUserRepository
 from conduit.domain.services.auth import IUserAuthService
 from conduit.domain.services.jwt import IJWTTokenService
+from conduit.domain.services.profile import IProfileService
 from conduit.infrastructure.mappers.user import UserModelMapper
+from conduit.infrastructure.repositories.follower import FollowerRepository
 from conduit.infrastructure.repositories.user import UserRepository
 from conduit.services.auth import UserAuthService
 from conduit.services.jwt import JWTTokenService
+from conduit.services.profile import ProfileService
 
 
 class Container:
@@ -52,6 +56,10 @@ class Container:
     def user_repository(self) -> IUserRepository:
         return UserRepository(user_mapper=self.user_model_mapper())
 
+    @staticmethod
+    def follower_repository() -> IFollowerRepository:
+        return FollowerRepository()
+
     def jwt_service(self) -> IJWTTokenService:
         return JWTTokenService(
             secret_key=self._settings.jwt_secret_key,
@@ -62,6 +70,11 @@ class Container:
     def user_auth_service(self) -> IUserAuthService:
         return UserAuthService(
             user_repo=self.user_repository(), jwt_service=self.jwt_service()
+        )
+
+    def profile_service(self) -> IProfileService:
+        return ProfileService(
+            user_repo=self.user_repository(), follower_repo=self.follower_repository()
         )
 
 

@@ -76,6 +76,20 @@ class IncorrectJWTTokenException(BaseInternalException):
     _message = "Invalid JWT token."
 
 
+class ProfileNotFoundException(BaseInternalException):
+    """Exception raised when specific profile not found."""
+
+    _status_code = 404
+    _message = "Profile with this username does not exist."
+
+
+class OwnProfileFollowingException(BaseInternalException):
+    """Exception raised when user is trying to follow own profile."""
+
+    _status_code = 404
+    _message = "Own profile cannot be followed or unfollowed."
+
+
 class RateLimitExceededException(BaseInternalException):
     """Exception raised when rate limit exceeded during specific time."""
 
