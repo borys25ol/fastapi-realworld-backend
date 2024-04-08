@@ -6,9 +6,9 @@ class IFollowerRepository(abc.ABC):
     """Follower repository interface."""
 
     @abc.abstractmethod
-    async def get(
+    async def exists(
         self, session: Any, follower_id: int, following_id: int
-    ) -> int | None: ...
+    ) -> bool: ...
 
     @abc.abstractmethod
     async def create(

@@ -10,12 +10,17 @@ from conduit.infrastructure.models import FollowerFollowingMap
 class FollowerRepository(IFollowerRepository):
     """Follower repository interface."""
 
-    async def get(
+    async def exists(
         self, session: AsyncSession, follower_id: int, following_id: int
-    ) -> int | None:
-        query = select(FollowerFollowingMap.following_id).where(
-            FollowerFollowingMap.follower_id == follower_id,
-            FollowerFollowingMap.following_id == following_id,
+    ) -> bool:
+        query = (
+            select(FollowerFollowingMap.following_id)
+            .where(
+                FollowerFollowingMap.follower_id == follower_id,
+                FollowerFollowingMap.following_id == following_id,
+            )
+            .exists()
+            .select()
         )
         result = await session.execute(query)
         return result.scalar_one_or_none()

@@ -21,22 +21,24 @@ class ProfileService(IProfileService):
     async def get_profile_by_username(
         self, session: AsyncSession, username: str, current_user: UserDTO | None = None
     ) -> ProfileDTO:
-        target_user_dto = await self._user_repo.get_by_username(
+        target_user = await self._user_repo.get_by_username(
             session=session, username=username
         )
-        if not target_user_dto:
+        if not target_user:
             raise ProfileNotFoundException()
 
-        profile_dto = ProfileDTO(
-            username=target_user_dto.username,
-            bio=target_user_dto.bio,
-            image=target_user_dto.image_url,
+        profile = ProfileDTO(
+            username=target_user.username,
+            bio=target_user.bio,
+            image=target_user.image_url,
         )
         if current_user:
-            profile_dto.following = await self._is_user_following_for_another_user(
-                session=session, target_user=target_user_dto, current_user=current_user
+            profile.following = await self._follower_repo.exists(
+                session=session,
+                follower_id=current_user.id,
+                following_id=target_user.id,
             )
-        return profile_dto
+        return profile
 
     async def add_user_into_followers(
         self, session: AsyncSession, username: str, current_user: UserDTO
@@ -44,16 +46,14 @@ class ProfileService(IProfileService):
         if username == current_user.username:
             raise OwnProfileFollowingException()
 
-        target_user_dto = await self._user_repo.get_by_username(
+        target_user = await self._user_repo.get_by_username(
             session=session, username=username
         )
-        if not target_user_dto:
+        if not target_user:
             raise ProfileNotFoundException()
 
         await self._follower_repo.create(
-            session=session,
-            follower_id=current_user.id,
-            following_id=target_user_dto.id,
+            session=session, follower_id=current_user.id, following_id=target_user.id
         )
 
     async def remove_user_from_followers(
@@ -62,22 +62,12 @@ class ProfileService(IProfileService):
         if username == current_user.username:
             raise OwnProfileFollowingException()
 
-        target_user_dto = await self._user_repo.get_by_username(
+        target_user = await self._user_repo.get_by_username(
             session=session, username=username
         )
-        if not target_user_dto:
+        if not target_user:
             raise ProfileNotFoundException()
 
         await self._follower_repo.delete(
-            session=session,
-            follower_id=current_user.id,
-            following_id=target_user_dto.id,
-        )
-
-    async def _is_user_following_for_another_user(
-        self, session: AsyncSession, target_user: UserDTO, current_user: UserDTO
-    ) -> bool:
-        following_id = await self._follower_repo.get(
             session=session, follower_id=current_user.id, following_id=target_user.id
         )
-        return following_id is not None
