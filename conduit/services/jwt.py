@@ -36,4 +36,4 @@ class JWTTokenService(IJWTTokenService):
             logger.error("Invalid JWT token", token=token_dto.token, error=err)
             raise IncorrectJWTTokenException()
 
-        return JWTUserDTO(user_id=payload["user_id"], username=payload["user_id"])
+        return JWTUserDTO(user_id=payload["user_id"], username=payload["username"])
