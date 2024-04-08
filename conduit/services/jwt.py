@@ -27,13 +27,13 @@ class JWTTokenService(IJWTTokenService):
         token = jwt.encode(payload, self._secret_key, algorithm=self._algorithm)
         return AuthTokenDTO(token=token)
 
-    def get_user_info_from_token(self, token_dto: AuthTokenDTO) -> JWTUserDTO:
+    def get_user_info_from_token(self, auth_token: AuthTokenDTO) -> JWTUserDTO:
         try:
             payload = jwt.decode(
-                token_dto.token, self._secret_key, algorithms=[self._algorithm]
+                auth_token.token, self._secret_key, algorithms=[self._algorithm]
             )
         except jwt.InvalidTokenError as err:
-            logger.error("Invalid JWT token", token=token_dto.token, error=err)
+            logger.error("Invalid JWT token", token=auth_token.token, error=err)
             raise IncorrectJWTTokenException()
 
         return JWTUserDTO(user_id=payload["user_id"], username=payload["username"])

@@ -29,8 +29,8 @@ class UserAuthService(IUserAuthService):
         self._jwt_service = jwt_service
 
     async def get_current_user(self, session: AsyncSession, token: str) -> UserDTO:
-        token_dto = AuthTokenDTO(token=token)
-        jwt_user = self._jwt_service.get_user_info_from_token(token_dto=token_dto)
+        auth_token = AuthTokenDTO(token=token)
+        jwt_user = self._jwt_service.get_user_info_from_token(auth_token=auth_token)
         return await self._user_repo.get_by_id(
             session=session, user_id=jwt_user.user_id
         )
