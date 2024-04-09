@@ -31,8 +31,8 @@ class UserRepository(IUserRepository):
             )
             .returning(User)
         )
-        user = await session.scalar(query)
-        return self._user_mapper.to_dto(user)
+        result = await session.execute(query)
+        return self._user_mapper.to_dto(result.scalar())
 
     async def get_by_email(self, session: AsyncSession, email: str) -> UserDTO | None:
         query = select(User).where(User.email == email)
@@ -83,5 +83,5 @@ class UserRepository(IUserRepository):
         if update_item.image_url is not None:
             query = query.values(image_url=update_item.image_url)
 
-        updated_user = await session.scalar(query)
-        return self._user_mapper.to_dto(updated_user)
+        result = await session.execute(query)
+        return self._user_mapper.to_dto(result.scalar())

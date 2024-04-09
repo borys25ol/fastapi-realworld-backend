@@ -27,15 +27,17 @@ class Container:
         self._engine = create_async_engine(
             url=settings.sql_db_uri,
             echo=self._settings.app_env != AppEnvTypes.production,
-            isolation_level="AUTOCOMMIT",
         )
-        self._session = async_sessionmaker(bind=self._engine)
+        self._session = async_sessionmaker(
+            bind=self._engine, autocommit=False, expire_on_commit=False
+        )
 
     @contextlib.asynccontextmanager
     async def context_session(self) -> AsyncIterator[AsyncSession]:
         session = self._session()
         try:
             yield session
+            await session.commit()
         except Exception:
             await session.rollback()
             raise
@@ -46,6 +48,10 @@ class Container:
         async with self._session() as session:
             try:
                 yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
             finally:
                 await session.close()
 
