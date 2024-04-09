@@ -1,10 +1,10 @@
 from datetime import datetime
 
-from sqlalchemy import delete, insert, select
+from sqlalchemy import delete, exists, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.domain.repositories.follower import IFollowerRepository
-from conduit.infrastructure.models import FollowerFollowingMap
+from conduit.infrastructure.models import Follower
 
 
 class FollowerRepository(IFollowerRepository):
@@ -14,21 +14,20 @@ class FollowerRepository(IFollowerRepository):
         self, session: AsyncSession, follower_id: int, following_id: int
     ) -> bool:
         query = (
-            select(FollowerFollowingMap.following_id)
+            exists()
             .where(
-                FollowerFollowingMap.follower_id == follower_id,
-                FollowerFollowingMap.following_id == following_id,
+                Follower.follower_id == follower_id,
+                Follower.following_id == following_id,
             )
-            .exists()
             .select()
         )
         result = await session.execute(query)
-        return result.scalar_one_or_none()
+        return result.scalar()
 
     async def create(
         self, session: AsyncSession, follower_id: int, following_id: int
     ) -> None:
-        query = insert(FollowerFollowingMap).values(
+        query = insert(Follower).values(
             follower_id=follower_id,
             following_id=following_id,
             created_at=datetime.now(),
@@ -38,8 +37,7 @@ class FollowerRepository(IFollowerRepository):
     async def delete(
         self, session: AsyncSession, follower_id: int, following_id: int
     ) -> None:
-        query = delete(FollowerFollowingMap).where(
-            FollowerFollowingMap.follower_id == follower_id,
-            FollowerFollowingMap.following_id == following_id,
+        query = delete(Follower).where(
+            Follower.follower_id == follower_id, Follower.following_id == following_id
         )
         await session.execute(query)

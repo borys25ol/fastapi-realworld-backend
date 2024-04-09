@@ -25,14 +25,14 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(nullable=True)
 
 
-class FollowerFollowingMap(Base):
-    __tablename__ = "follower_following_map"
+class Follower(Base):
+    __tablename__ = "follower"
 
-    # "Followers" are the users who follow you.
+    # "follower" is a user who follows a user.
     follower_id: Mapped[int] = mapped_column(
         ForeignKey("user.id"), primary_key=True, nullable=False
     )
-    # "Following" are the users who you follow.
+    # "following" is a user who you follow.
     following_id: Mapped[int] = mapped_column(
         ForeignKey("user.id"), primary_key=True, nullable=False
     )
