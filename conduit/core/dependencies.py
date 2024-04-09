@@ -9,6 +9,7 @@ from conduit.domain.dtos.user import UserDTO
 from conduit.services.auth import UserAuthService
 from conduit.services.jwt import JWTTokenService
 from conduit.services.profile import ProfileService
+from conduit.services.tag import TagService
 
 token_security = HTTPTokenHeader(
     name="Authorization",
@@ -32,6 +33,7 @@ DBSession = Annotated[AsyncSession, Depends(container.session)]
 IJWTTokenService = Annotated[JWTTokenService, Depends(container.jwt_service)]
 IUserAuthService = Annotated[UserAuthService, Depends(container.user_auth_service)]
 IProfileService = Annotated[ProfileService, Depends(container.profile_service)]
+ITagService = Annotated[TagService, Depends(container.tag_service)]
 
 
 async def get_current_user_or_none(

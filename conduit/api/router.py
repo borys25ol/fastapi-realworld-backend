@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from conduit.api.routes import authentication, health_check, profile, users
+from conduit.api.routes import authentication, health_check, profile, tag, users
 
 router = APIRouter()
 
@@ -12,3 +12,4 @@ router.include_router(
 )
 router.include_router(router=users.router, tags=["User"], prefix="/user")
 router.include_router(router=profile.router, tags=["Profiles"], prefix="/profiles")
+router.include_router(router=tag.router, tags=["Tags"], prefix="/tags")

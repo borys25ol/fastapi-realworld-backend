@@ -7,16 +7,21 @@ from conduit.core.config import get_app_settings
 from conduit.core.settings.base import AppEnvTypes, BaseAppSettings
 from conduit.domain.mapper import IModelMapper
 from conduit.domain.repositories.follower import IFollowerRepository
+from conduit.domain.repositories.tag import ITagRepository
 from conduit.domain.repositories.user import IUserRepository
 from conduit.domain.services.auth import IUserAuthService
 from conduit.domain.services.jwt import IJWTTokenService
 from conduit.domain.services.profile import IProfileService
+from conduit.domain.services.tag import ITagService
+from conduit.infrastructure.mappers.tag import TagModelMapper
 from conduit.infrastructure.mappers.user import UserModelMapper
 from conduit.infrastructure.repositories.follower import FollowerRepository
+from conduit.infrastructure.repositories.tag import TagRepository
 from conduit.infrastructure.repositories.user import UserRepository
 from conduit.services.auth import UserAuthService
 from conduit.services.jwt import JWTTokenService
 from conduit.services.profile import ProfileService
+from conduit.services.tag import TagService
 
 
 class Container:
@@ -59,12 +64,19 @@ class Container:
     def user_model_mapper() -> IModelMapper:
         return UserModelMapper()
 
+    @staticmethod
+    def tag_model_mapper() -> IModelMapper:
+        return TagModelMapper()
+
     def user_repository(self) -> IUserRepository:
         return UserRepository(user_mapper=self.user_model_mapper())
 
     @staticmethod
     def follower_repository() -> IFollowerRepository:
         return FollowerRepository()
+
+    def tags_repository(self) -> ITagRepository:
+        return TagRepository(tag_mapper=self.tag_model_mapper())
 
     def jwt_service(self) -> IJWTTokenService:
         return JWTTokenService(
@@ -82,6 +94,9 @@ class Container:
         return ProfileService(
             user_repo=self.user_repository(), follower_repo=self.follower_repository()
         )
+
+    def tag_service(self) -> ITagService:
+        return TagService(tag_repo=self.tags_repository())
 
 
 container = Container(settings=get_app_settings())

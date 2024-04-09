@@ -8,7 +8,7 @@ from conduit.infrastructure.models import Follower
 
 
 class FollowerRepository(IFollowerRepository):
-    """Follower repository interface."""
+    """Repository for Follower model."""
 
     async def exists(
         self, session: AsyncSession, follower_id: int, following_id: int
