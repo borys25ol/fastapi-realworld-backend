@@ -42,7 +42,7 @@ class ArticleResponse(BaseModel):
             createdAt=article_dto.article.created_at,
             updatedAt=article_dto.article.updated_at,
             favorited=article_dto.favorited,
-            favorites_count=article_dto.favorites_count,
+            favoritesCount=article_dto.favorites_count,
             author=ArticleAuthorData(
                 username=profile_dto.username,
                 bio=profile_dto.bio,
@@ -59,14 +59,14 @@ class ArticlesFeedResponse(BaseModel):
 
     @classmethod
     def from_dto(
-        cls, articles_feed_dto: ArticlesFeedDTO, profiles_dto_map: dict[int, ProfileDTO]
+        cls, articles_feed_dto: ArticlesFeedDTO, profile_dtos_map: dict[int, ProfileDTO]
     ) -> "ArticlesFeedResponse":
         articles = [
             ArticleResponse.from_dto(
-                article_dto=article,
-                profile_dto=profiles_dto_map[article.article.author_id],
+                article_dto=article_dto,
+                profile_dto=profile_dtos_map[article_dto.article.author_id],
             ).article
-            for article in articles_feed_dto.articles
+            for article_dto in articles_feed_dto.articles
         ]
         return ArticlesFeedResponse(
             articles=articles, articlesCount=articles_feed_dto.articles_count

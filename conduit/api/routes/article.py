@@ -23,14 +23,16 @@ async def get_article_feed(
     """
     Get article feed from following users.
     """
-    followed_profiles_map = await profile_service.get_followed_profiles(
+    following_profiles_map = await profile_service.get_followed_profiles(
         session=session, current_user=current_user
     )
     articles_feed_dto = await article_service.get_articles_by_following_authors(
-        session=session, following_author_ids=list(followed_profiles_map.keys())
+        session=session,
+        author_ids=list(following_profiles_map),
+        user_id=current_user.id,
     )
     return ArticlesFeedResponse.from_dto(
-        articles_feed_dto=articles_feed_dto, profiles_dto_map=followed_profiles_map
+        articles_feed_dto=articles_feed_dto, profile_dtos_map=following_profiles_map
     )
 
 

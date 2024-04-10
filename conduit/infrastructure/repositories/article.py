@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.functions import count
 
 from conduit.core.utils.slug import get_slug_from_title
 from conduit.domain.dtos.article import ArticleDTO, CreateArticleDTO
@@ -45,3 +46,10 @@ class ArticleRepository(IArticleRepository):
         query = select(Article).where(Article.author_id.in_(author_ids))
         articles = await session.scalars(query)
         return [self._article_mapper.to_dto(article) for article in articles]
+
+    async def count_by_author_ids(
+        self, session: AsyncSession, author_ids: list[int]
+    ) -> int:
+        query = select(count()).where(Article.author_id.in_(author_ids))
+        result = await session.execute(query)
+        return result.scalar()

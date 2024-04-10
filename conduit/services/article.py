@@ -51,13 +51,42 @@ class ArticleService(IArticleService):
         self, session: AsyncSession, slug: str, user_id: int | None = None
     ) -> ArticleWithExtraDTO:
         article = await self._article_repo.get_by_slug(session=session, slug=slug)
-        article_tags = await self._article_tag_repo.get_by_article_id(
-            session=session, article_id=article.id
+        return await self._get_article_info(
+            session=session, article=article, user_id=user_id
         )
+
+    async def get_articles_by_following_authors(
+        self, session: AsyncSession, author_ids: list[int], user_id: int
+    ) -> ArticlesFeedDTO:
+        articles = await self._article_repo.get_by_author_ids(
+            session=session, author_ids=author_ids
+        )
+        articles_count = await self._article_repo.count_by_author_ids(
+            session=session, author_ids=author_ids
+        )
+        articles_with_extra = [
+            await self._get_article_info(
+                session=session, article=article, user_id=user_id
+            )
+            for article in articles
+        ]
+        return ArticlesFeedDTO(
+            articles=articles_with_extra, articles_count=articles_count
+        )
+
+    async def _get_article_info(
+        self, session: AsyncSession, article: ArticleDTO, user_id: int | None = None
+    ) -> ArticleWithExtraDTO:
+        article_tags = [
+            tag.tag
+            for tag in await self._article_tag_repo.get_by_article_id(
+                session=session, article_id=article.id
+            )
+        ]
         favorites_count = await self._favorite_repo.count(
             session=session, article_id=article.id
         )
-        is_favorite_by_user = (
+        is_favorited_by_user = (
             await self._favorite_repo.exists(
                 session=session, author_id=user_id, article_id=article.id
             )
@@ -66,40 +95,7 @@ class ArticleService(IArticleService):
         )
         return ArticleWithExtraDTO(
             article=article,
-            tags=[tag.tag for tag in article_tags],
-            favorited=is_favorite_by_user,
-            favorites_count=favorites_count,
-        )
-
-    async def get_articles_by_following_authors(
-        self, session: AsyncSession, following_author_ids: list[int]
-    ) -> ArticlesFeedDTO:
-        articles = await self._article_repo.get_by_author_ids(
-            session=session, author_ids=following_author_ids
-        )
-        articles_with_extra = [
-            await self._get_following_article_info(session=session, article=article)
-            for article in articles
-        ]
-        return ArticlesFeedDTO(
-            articles=articles_with_extra, articles_count=len(articles_with_extra)
-        )
-
-    async def _get_following_article_info(
-        self, session: AsyncSession, article: ArticleDTO
-    ) -> ArticleWithExtraDTO:
-        article_tags = await self._article_tag_repo.get_by_article_id(
-            session=session, article_id=article.id
-        )
-        favorites_count = await self._favorite_repo.count(
-            session=session, article_id=article.id
-        )
-        is_favorite_by_user = await self._favorite_repo.exists(
-            session=session, author_id=article.author_id, article_id=article.id
-        )
-        return ArticleWithExtraDTO(
-            article=article,
-            tags=[tag.tag for tag in article_tags],
-            favorited=is_favorite_by_user,
+            tags=article_tags,
+            favorited=is_favorited_by_user,
             favorites_count=favorites_count,
         )

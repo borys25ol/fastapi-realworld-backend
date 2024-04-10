@@ -22,5 +22,5 @@ class IArticleService(abc.ABC):
 
     @abc.abstractmethod
     async def get_articles_by_following_authors(
-        self, session: Any, following_author_ids: list[int]
+        self, session: Any, author_ids: list[int], user_id: int
     ) -> ArticlesFeedDTO: ...
