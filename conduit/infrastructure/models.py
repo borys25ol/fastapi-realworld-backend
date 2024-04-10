@@ -64,5 +64,13 @@ class ArticleTag(Base):
     __tablename__ = "article_tag"
 
     article_id: Mapped[int] = mapped_column(ForeignKey("article.id"), primary_key=True)
-    tag_id: Mapped[int] = mapped_column(ForeignKey("article.id"), primary_key=True)
+    tag_id: Mapped[int] = mapped_column(ForeignKey("tag.id"), primary_key=True)
+    created_at: Mapped[datetime]
+
+
+class Favorite(Base):
+    __tablename__ = "favorite"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), primary_key=True)
+    article_id: Mapped[int] = mapped_column(ForeignKey("article.id"), primary_key=True)
     created_at: Mapped[datetime]
