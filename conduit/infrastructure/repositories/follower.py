@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import delete, exists, insert
+from sqlalchemy import delete, exists, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.domain.repositories.follower import IFollowerRepository
@@ -23,6 +23,11 @@ class FollowerRepository(IFollowerRepository):
         )
         result = await session.execute(query)
         return result.scalar()
+
+    async def get(self, session: AsyncSession, follower_id: int) -> list[int]:
+        query = select(Follower.following_id).where(Follower.follower_id == follower_id)
+        result = await session.execute(query)
+        return result.scalars().all()
 
     async def create(
         self, session: AsyncSession, follower_id: int, following_id: int
