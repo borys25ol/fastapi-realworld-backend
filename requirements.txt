@@ -5,6 +5,7 @@ passlib[bcrypt]==1.7.4
 pydantic==2.6.4
 pydantic-settings==2.2.1
 pyjwt==2.8.0
+python-slugify==8.0.4
 SQLAlchemy==2.0.29
 sqlmodel==0.0.16
 starlette==0.37.2

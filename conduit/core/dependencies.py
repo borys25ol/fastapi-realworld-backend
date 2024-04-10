@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from conduit.core.container import container
 from conduit.core.security import HTTPTokenHeader
 from conduit.domain.dtos.user import UserDTO
+from conduit.services.article import ArticleService
 from conduit.services.auth import UserAuthService
 from conduit.services.jwt import JWTTokenService
 from conduit.services.profile import ProfileService
@@ -29,11 +30,11 @@ JWTTokenOptional = Annotated[str, Depends(token_security_optional)]
 
 DBSession = Annotated[AsyncSession, Depends(container.session)]
 
-
 IJWTTokenService = Annotated[JWTTokenService, Depends(container.jwt_service)]
 IUserAuthService = Annotated[UserAuthService, Depends(container.user_auth_service)]
 IProfileService = Annotated[ProfileService, Depends(container.profile_service)]
 ITagService = Annotated[TagService, Depends(container.tag_service)]
+IArticleService = Annotated[ArticleService, Depends(container.article_service)]
 
 
 async def get_current_user_or_none(
