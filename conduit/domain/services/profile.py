@@ -18,9 +18,9 @@ class IProfileService(abc.ABC):
     ) -> ProfileDTO: ...
 
     @abc.abstractmethod
-    async def get_followed_profiles(
+    async def get_following_profiles(
         self, session: Any, current_user: UserDTO
-    ) -> dict[int, ProfileDTO]: ...
+    ) -> list[ProfileDTO]: ...
 
     @abc.abstractmethod
     async def add_user_into_followers(

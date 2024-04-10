@@ -6,6 +6,7 @@ from conduit.domain.dtos.article import (
     ArticleWithExtraDTO,
     CreateArticleDTO,
 )
+from conduit.domain.dtos.user import UserDTO
 
 
 class IArticleService(abc.ABC):
@@ -17,10 +18,10 @@ class IArticleService(abc.ABC):
 
     @abc.abstractmethod
     async def get_article_by_slug(
-        self, session: Any, slug: str, user_id: int | None = None
+        self, session: Any, slug: str, current_user: UserDTO | None
     ) -> ArticleWithExtraDTO: ...
 
     @abc.abstractmethod
     async def get_articles_by_following_authors(
-        self, session: Any, author_ids: list[int], user_id: int
+        self, session: Any, current_user: UserDTO
     ) -> ArticlesFeedDTO: ...

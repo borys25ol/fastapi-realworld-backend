@@ -127,6 +127,7 @@ class Container:
             article_repo=self.article_repository(),
             article_tag_repo=self.article_tag_repository(),
             favorite_repo=self.favorite_repository(),
+            profile_service=self.profile_service(),
         )
 
 

@@ -7,7 +7,6 @@ from conduit.core.dependencies import (
     CurrentUser,
     DBSession,
     IArticleService,
-    IProfileService,
 )
 
 router = APIRouter()
@@ -15,25 +14,15 @@ router = APIRouter()
 
 @router.get("/feed", response_model=ArticlesFeedResponse)
 async def get_article_feed(
-    session: DBSession,
-    current_user: CurrentUser,
-    article_service: IArticleService,
-    profile_service: IProfileService,
+    session: DBSession, current_user: CurrentUser, article_service: IArticleService
 ) -> ArticlesFeedResponse:
     """
     Get article feed from following users.
     """
-    following_profiles_map = await profile_service.get_followed_profiles(
+    articles_feed_dto = await article_service.get_articles_by_following_authors(
         session=session, current_user=current_user
     )
-    articles_feed_dto = await article_service.get_articles_by_following_authors(
-        session=session,
-        author_ids=list(following_profiles_map),
-        user_id=current_user.id,
-    )
-    return ArticlesFeedResponse.from_dto(
-        articles_feed_dto=articles_feed_dto, profile_dtos_map=following_profiles_map
-    )
+    return ArticlesFeedResponse.from_dto(dto=articles_feed_dto)
 
 
 @router.get("/{slug}", response_model=ArticleResponse)
@@ -42,21 +31,14 @@ async def get_article(
     session: DBSession,
     current_user: CurrentOptionalUser,
     article_service: IArticleService,
-    profile_service: IProfileService,
 ) -> ArticleResponse:
     """
     Get new article by slug.
     """
-    user_id = current_user.id if current_user else None
     article_dto = await article_service.get_article_by_slug(
-        session=session, user_id=user_id, slug=slug
+        session=session, slug=slug, current_user=current_user
     )
-    profile_dto = await profile_service.get_profile_by_user_id(
-        session=session,
-        user_id=article_dto.article.author_id,
-        current_user=current_user,
-    )
-    return ArticleResponse.from_dto(article_dto=article_dto, profile_dto=profile_dto)
+    return ArticleResponse.from_dto(dto=article_dto)
 
 
 @router.post("", response_model=ArticleResponse)
@@ -65,17 +47,11 @@ async def create_article(
     session: DBSession,
     current_user: CurrentUser,
     article_service: IArticleService,
-    profile_service: IProfileService,
 ) -> ArticleResponse:
     """
     Create new article.
     """
-    created_article_dto = await article_service.create_new_article(
+    article_dto = await article_service.create_new_article(
         session=session, author_id=current_user.id, article_to_create=payload.to_dto()
     )
-    profile_dto = await profile_service.get_profile_by_username(
-        session=session, username=current_user.username, current_user=current_user
-    )
-    return ArticleResponse.from_dto(
-        article_dto=created_article_dto, profile_dto=profile_dto
-    )
+    return ArticleResponse.from_dto(dto=article_dto)

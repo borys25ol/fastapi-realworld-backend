@@ -1,6 +1,8 @@
 import datetime
 from dataclasses import dataclass
 
+from conduit.domain.dtos.profile import ProfileDTO
+
 
 @dataclass(frozen=True)
 class ArticleDTO:
@@ -17,6 +19,7 @@ class ArticleDTO:
 @dataclass(frozen=True)
 class ArticleWithExtraDTO:
     article: ArticleDTO
+    profile: ProfileDTO
     tags: list[str]
     favorited: bool
     favorites_count: int

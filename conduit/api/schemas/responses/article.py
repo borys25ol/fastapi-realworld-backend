@@ -3,7 +3,6 @@ import datetime
 from pydantic import BaseModel, Field
 
 from conduit.domain.dtos.article import ArticlesFeedDTO, ArticleWithExtraDTO
-from conduit.domain.dtos.profile import ProfileDTO
 
 
 class ArticleAuthorData(BaseModel):
@@ -30,24 +29,22 @@ class ArticleResponse(BaseModel):
     article: ArticleData
 
     @classmethod
-    def from_dto(
-        cls, article_dto: ArticleWithExtraDTO, profile_dto: ProfileDTO
-    ) -> "ArticleResponse":
+    def from_dto(cls, dto: ArticleWithExtraDTO) -> "ArticleResponse":
         article = ArticleData(
-            slug=article_dto.article.slug,
-            title=article_dto.article.title,
-            description=article_dto.article.description,
-            body=article_dto.article.body,
-            tagList=article_dto.tags,
-            createdAt=article_dto.article.created_at,
-            updatedAt=article_dto.article.updated_at,
-            favorited=article_dto.favorited,
-            favoritesCount=article_dto.favorites_count,
+            slug=dto.article.slug,
+            title=dto.article.title,
+            description=dto.article.description,
+            body=dto.article.body,
+            tagList=dto.tags,
+            createdAt=dto.article.created_at,
+            updatedAt=dto.article.updated_at,
+            favorited=dto.favorited,
+            favoritesCount=dto.favorites_count,
             author=ArticleAuthorData(
-                username=profile_dto.username,
-                bio=profile_dto.bio,
-                image=profile_dto.image,
-                following=profile_dto.following,
+                username=dto.profile.username,
+                bio=dto.profile.bio,
+                image=dto.profile.image,
+                following=dto.profile.following,
             ),
         )
         return ArticleResponse(article=article)
@@ -58,16 +55,9 @@ class ArticlesFeedResponse(BaseModel):
     articles_count: int = Field(alias="articlesCount")
 
     @classmethod
-    def from_dto(
-        cls, articles_feed_dto: ArticlesFeedDTO, profile_dtos_map: dict[int, ProfileDTO]
-    ) -> "ArticlesFeedResponse":
+    def from_dto(cls, dto: ArticlesFeedDTO) -> "ArticlesFeedResponse":
         articles = [
-            ArticleResponse.from_dto(
-                article_dto=article_dto,
-                profile_dto=profile_dtos_map[article_dto.article.author_id],
-            ).article
-            for article_dto in articles_feed_dto.articles
+            ArticleResponse.from_dto(dto=article_dto).article
+            for article_dto in dto.articles
         ]
-        return ArticlesFeedResponse(
-            articles=articles, articlesCount=articles_feed_dto.articles_count
-        )
+        return ArticlesFeedResponse(articles=articles, articlesCount=dto.articles_count)

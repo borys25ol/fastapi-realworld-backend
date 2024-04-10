@@ -6,11 +6,14 @@ from conduit.domain.dtos.article import (
     ArticleWithExtraDTO,
     CreateArticleDTO,
 )
+from conduit.domain.dtos.profile import ProfileDTO
+from conduit.domain.dtos.user import UserDTO
 from conduit.domain.repositories.article import IArticleRepository
 from conduit.domain.repositories.article_tag import IArticleTagRepository
 from conduit.domain.repositories.favorite import IFavoriteRepository
 from conduit.domain.repositories.tag import ITagRepository
 from conduit.domain.services.article import IArticleService
+from conduit.domain.services.profile import IProfileService
 
 
 class ArticleService(IArticleService):
@@ -22,17 +25,22 @@ class ArticleService(IArticleService):
         article_repo: IArticleRepository,
         article_tag_repo: IArticleTagRepository,
         favorite_repo: IFavoriteRepository,
+        profile_service: IProfileService,
     ) -> None:
         self._tag_repo = tag_repo
         self._article_repo = article_repo
         self._article_tag_repo = article_tag_repo
         self._favorite_repo = favorite_repo
+        self._profile_service = profile_service
 
     async def create_new_article(
         self, session: AsyncSession, author_id: int, article_to_create: CreateArticleDTO
     ) -> ArticleWithExtraDTO:
         article = await self._article_repo.create(
             session=session, author_id=author_id, create_item=article_to_create
+        )
+        profile = await self._profile_service.get_profile_by_user_id(
+            session=session, user_id=author_id
         )
         tags = await self._tag_repo.create(session=session, tags=article_to_create.tags)
 
@@ -42,31 +50,47 @@ class ArticleService(IArticleService):
         )
         return ArticleWithExtraDTO(
             article=article,
+            profile=profile,
             tags=article_to_create.tags,
             favorited=False,
             favorites_count=0,
         )
 
     async def get_article_by_slug(
-        self, session: AsyncSession, slug: str, user_id: int | None = None
+        self, session: AsyncSession, slug: str, current_user: UserDTO | None
     ) -> ArticleWithExtraDTO:
         article = await self._article_repo.get_by_slug(session=session, slug=slug)
+        profile = await self._profile_service.get_profile_by_user_id(
+            session=session, user_id=article.author_id, current_user=current_user
+        )
         return await self._get_article_info(
-            session=session, article=article, user_id=user_id
+            session=session,
+            article=article,
+            profile=profile,
+            user_id=current_user.id if current_user else None,
         )
 
     async def get_articles_by_following_authors(
-        self, session: AsyncSession, author_ids: list[int], user_id: int
+        self, session: AsyncSession, current_user: UserDTO
     ) -> ArticlesFeedDTO:
+        following_profiles = await self._profile_service.get_following_profiles(
+            session=session, current_user=current_user
+        )
+        following_profiles_map = {
+            profile.user_id: profile for profile in following_profiles
+        }
         articles = await self._article_repo.get_by_author_ids(
-            session=session, author_ids=author_ids
+            session=session, author_ids=list(following_profiles_map)
         )
         articles_count = await self._article_repo.count_by_author_ids(
-            session=session, author_ids=author_ids
+            session=session, author_ids=list(following_profiles_map)
         )
         articles_with_extra = [
             await self._get_article_info(
-                session=session, article=article, user_id=user_id
+                session=session,
+                article=article,
+                profile=following_profiles_map[article.author_id],
+                user_id=current_user.id,
             )
             for article in articles
         ]
@@ -75,7 +99,11 @@ class ArticleService(IArticleService):
         )
 
     async def _get_article_info(
-        self, session: AsyncSession, article: ArticleDTO, user_id: int | None = None
+        self,
+        session: AsyncSession,
+        article: ArticleDTO,
+        profile: ProfileDTO,
+        user_id: int | None = None,
     ) -> ArticleWithExtraDTO:
         article_tags = [
             tag.tag
@@ -95,6 +123,7 @@ class ArticleService(IArticleService):
         )
         return ArticleWithExtraDTO(
             article=article,
+            profile=profile,
             tags=article_tags,
             favorited=is_favorited_by_user,
             favorites_count=favorites_count,

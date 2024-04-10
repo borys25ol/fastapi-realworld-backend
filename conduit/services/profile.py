@@ -28,6 +28,7 @@ class ProfileService(IProfileService):
             raise ProfileNotFoundException()
 
         profile = ProfileDTO(
+            user_id=target_user.id,
             username=target_user.username,
             bio=target_user.bio,
             image=target_user.image_url,
@@ -48,6 +49,7 @@ class ProfileService(IProfileService):
             raise ProfileNotFoundException()
 
         profile = ProfileDTO(
+            user_id=target_user.id,
             username=target_user.username,
             bio=target_user.bio,
             image=target_user.image_url,
@@ -60,24 +62,25 @@ class ProfileService(IProfileService):
             )
         return profile
 
-    async def get_followed_profiles(
+    async def get_following_profiles(
         self, session: AsyncSession, current_user: UserDTO
-    ) -> dict[int, ProfileDTO]:
-        following_profiles = await self._follower_repo.get(
+    ) -> list[ProfileDTO]:
+        following_profile_ids = await self._follower_repo.get(
             session=session, follower_id=current_user.id
         )
         target_users_map = await self._user_repo.get_by_ids(
-            session=session, ids=following_profiles
+            session=session, ids=following_profile_ids
         )
-        return {
-            user_id: ProfileDTO(
+        return [
+            ProfileDTO(
+                user_id=user_id,
                 username=user_dto.username,
                 bio=user_dto.bio,
                 image=user_dto.image_url,
                 following=True,
             )
             for user_id, user_dto in target_users_map.items()
-        }
+        ]
 
     async def add_user_into_followers(
         self, session: AsyncSession, username: str, current_user: UserDTO
