@@ -13,6 +13,16 @@ class IProfileService(abc.ABC):
     ) -> ProfileDTO: ...
 
     @abc.abstractmethod
+    async def get_profile_by_user_id(
+        self, session: Any, user_id: int, current_user: UserDTO | None = None
+    ) -> ProfileDTO: ...
+
+    @abc.abstractmethod
+    async def get_followed_profiles(
+        self, session: Any, current_user: UserDTO
+    ) -> dict[int, ProfileDTO]: ...
+
+    @abc.abstractmethod
     async def add_user_into_followers(
         self, session: Any, username: str, current_user: UserDTO
     ) -> None: ...

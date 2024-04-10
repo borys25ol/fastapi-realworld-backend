@@ -40,6 +40,45 @@ class ProfileService(IProfileService):
             )
         return profile
 
+    async def get_profile_by_user_id(
+        self, session: AsyncSession, user_id: int, current_user: UserDTO | None = None
+    ) -> ProfileDTO:
+        target_user = await self._user_repo.get_by_id(session=session, user_id=user_id)
+        if not target_user:
+            raise ProfileNotFoundException()
+
+        profile = ProfileDTO(
+            username=target_user.username,
+            bio=target_user.bio,
+            image=target_user.image_url,
+        )
+        if current_user:
+            profile.following = await self._follower_repo.exists(
+                session=session,
+                follower_id=current_user.id,
+                following_id=target_user.id,
+            )
+        return profile
+
+    async def get_followed_profiles(
+        self, session: AsyncSession, current_user: UserDTO
+    ) -> dict[int, ProfileDTO]:
+        following_profiles = await self._follower_repo.get(
+            session=session, follower_id=current_user.id
+        )
+        target_users_map = await self._user_repo.get_by_ids(
+            session=session, ids=following_profiles
+        )
+        return {
+            user_id: ProfileDTO(
+                username=user_dto.username,
+                bio=user_dto.bio,
+                image=user_dto.image_url,
+                following=True,
+            )
+            for user_id, user_dto in target_users_map.items()
+        }
+
     async def add_user_into_followers(
         self, session: AsyncSession, username: str, current_user: UserDTO
     ) -> None:
