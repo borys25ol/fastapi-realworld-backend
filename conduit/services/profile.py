@@ -65,21 +65,21 @@ class ProfileService(IProfileService):
     async def get_following_profiles(
         self, session: AsyncSession, current_user: UserDTO
     ) -> list[ProfileDTO]:
-        following_profile_ids = await self._follower_repo.get(
+        following_user_ids = await self._follower_repo.get(
             session=session, follower_id=current_user.id
         )
-        target_users_map = await self._user_repo.get_by_ids(
-            session=session, ids=following_profile_ids
+        following_users = await self._user_repo.get_by_ids(
+            session=session, ids=following_user_ids
         )
         return [
             ProfileDTO(
-                user_id=user_id,
+                user_id=user_dto.id,
                 username=user_dto.username,
                 bio=user_dto.bio,
                 image=user_dto.image_url,
                 following=True,
             )
-            for user_id, user_dto in target_users_map.items()
+            for user_dto in following_users
         ]
 
     async def add_user_into_followers(

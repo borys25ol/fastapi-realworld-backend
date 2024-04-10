@@ -46,10 +46,10 @@ class UserRepository(IUserRepository):
 
     async def get_by_ids(
         self, session: AsyncSession, ids: Collection[int]
-    ) -> Mapping[int, UserDTO]:
+    ) -> list[UserDTO]:
         query = select(User).where(User.id.in_(ids))
         users = await session.scalars(query)
-        return {user.id: self._user_mapper.to_dto(user) for user in users}
+        return [self._user_mapper.to_dto(user) for user in users]
 
     async def get_by_username(
         self, session: AsyncSession, username: str
