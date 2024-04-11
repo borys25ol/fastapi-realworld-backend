@@ -62,14 +62,14 @@ class ProfileService(IProfileService):
             )
         return profile
 
-    async def get_following_profiles(
-        self, session: AsyncSession, current_user: UserDTO
+    async def get_profiles_by_ids(
+        self, session: AsyncSession, user_ids: list[int], current_user: UserDTO | None
     ) -> list[ProfileDTO]:
-        following_user_ids = await self._follower_repo.get(
-            session=session, follower_id=current_user.id
-        )
-        following_users = await self._user_repo.get_by_ids(
-            session=session, ids=following_user_ids
+        target_users = await self._user_repo.get_by_ids(session=session, ids=user_ids)
+        following_user_ids = (
+            await self._follower_repo.get(session=session, follower_id=current_user.id)
+            if current_user
+            else []
         )
         return [
             ProfileDTO(
@@ -77,12 +77,12 @@ class ProfileService(IProfileService):
                 username=user_dto.username,
                 bio=user_dto.bio,
                 image=user_dto.image_url,
-                following=True,
+                following=user_dto.id in following_user_ids,
             )
-            for user_dto in following_users
+            for user_dto in target_users
         ]
 
-    async def get_profiles_by_ids(
+    async def get_following_profiles_by_ids(
         self, session: AsyncSession, user_ids: list[int], current_user: UserDTO
     ) -> list[ProfileDTO]:
         target_user = await self._user_repo.get_by_ids(session=session, ids=user_ids)

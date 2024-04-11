@@ -1,7 +1,11 @@
 from fastapi import APIRouter
+from fastapi.params import Query
 from starlette import status
 
 from conduit.api.schemas.requests.article import (
+    DEFAULT_ARTICLES_LIMIT,
+    DEFAULT_ARTICLES_OFFSET,
+    ArticlesFilters,
     CreateArticleRequest,
     UpdateArticleRequest,
 )
@@ -11,6 +15,7 @@ from conduit.core.dependencies import (
     CurrentUser,
     DBSession,
     IArticleService,
+    QueryFilters,
 )
 
 router = APIRouter()
@@ -18,26 +23,39 @@ router = APIRouter()
 
 @router.get("/feed", response_model=ArticlesFeedResponse)
 async def get_article_feed(
-    session: DBSession, current_user: CurrentUser, article_service: IArticleService
+    session: DBSession,
+    current_user: CurrentUser,
+    article_service: IArticleService,
+    limit: int = Query(DEFAULT_ARTICLES_LIMIT, ge=1),
+    offset: int = Query(DEFAULT_ARTICLES_OFFSET, ge=0),
 ) -> ArticlesFeedResponse:
     """
     Get article feed from following users.
     """
-    articles_feed_dto = await article_service.get_articles_by_following_authors(
-        session=session, current_user=current_user
+    articles_feed_dto = await article_service.get_articles_by_following_profiles(
+        session=session, current_user=current_user, limit=limit, offset=offset
     )
     return ArticlesFeedResponse.from_dto(dto=articles_feed_dto)
 
 
 @router.get("", response_model=ArticlesFeedResponse)
 async def get_global_article_feed(
-    session: DBSession, current_user: CurrentUser, article_service: IArticleService
+    articles_filters: QueryFilters,
+    session: DBSession,
+    current_user: CurrentOptionalUser,
+    article_service: IArticleService,
 ) -> ArticlesFeedResponse:
     """
     Get global article feed.
     """
-    articles_feed_dto = await article_service.get_global_articles(
-        session=session, current_user=current_user
+    articles_feed_dto = await article_service.get_articles_by_filters(
+        session=session,
+        current_user=current_user,
+        tag=articles_filters.tag,
+        author=articles_filters.author,
+        favorited=articles_filters.favorited,
+        limit=articles_filters.limit,
+        offset=articles_filters.offset,
     )
     return ArticlesFeedResponse.from_dto(dto=articles_feed_dto)
 

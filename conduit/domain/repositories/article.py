@@ -24,15 +24,29 @@ class IArticleRepository(abc.ABC):
     ) -> ArticleDTO: ...
 
     @abc.abstractmethod
-    async def get_by_author_ids(
-        self, session: Any, author_ids: list[int]
+    async def get_by_following_profiles(
+        self, session: Any, user_id: int, limit: int, offset: int
     ) -> list[ArticleDTO]: ...
 
     @abc.abstractmethod
-    async def get_all(self, session: Any) -> list[ArticleDTO]: ...
+    async def get_by_filters(
+        self,
+        session: Any,
+        limit: int,
+        offset: int,
+        tag: str | None = None,
+        author: str | None = None,
+        favorited: str | None = None,
+    ) -> list[ArticleDTO]: ...
 
     @abc.abstractmethod
-    async def count_by_author_ids(self, session: Any, author_ids: list[int]) -> int: ...
+    async def count_by_following_profiles(self, session: Any, user_id: int) -> int: ...
 
     @abc.abstractmethod
-    async def count_all(self, session: Any) -> int: ...
+    async def count_by_filters(
+        self,
+        session: Any,
+        tag: str | None = None,
+        author: str | None = None,
+        favorited: str | None = None,
+    ) -> int: ...
