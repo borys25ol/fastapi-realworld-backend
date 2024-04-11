@@ -24,9 +24,6 @@ class IUserRepository(abc.ABC):
     async def get_by_username(self, session: Any, username: str) -> UserDTO | None: ...
 
     @abc.abstractmethod
-    async def get_all(self, session: Any) -> list[UserDTO]: ...
-
-    @abc.abstractmethod
     async def update(
         self, session: Any, user_id: int, update_item: UpdateUserDTO
     ) -> UserDTO: ...

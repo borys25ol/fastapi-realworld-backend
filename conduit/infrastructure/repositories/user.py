@@ -58,11 +58,6 @@ class UserRepository(IUserRepository):
         if user := await session.scalar(query):
             return self._user_mapper.to_dto(user)
 
-    async def get_all(self, session: AsyncSession) -> list[UserDTO]:
-        query = select(User)
-        users = await session.scalars(query)
-        return [self._user_mapper.to_dto(user) for user in users]
-
     async def update(
         self, session: AsyncSession, user_id: int, update_item: UpdateUserDTO
     ) -> UserDTO:
