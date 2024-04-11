@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from datetime import datetime
 
 from sqlalchemy import select
