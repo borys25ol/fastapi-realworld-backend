@@ -50,17 +50,24 @@ class ArticleNotFoundException(BaseInternalException):
 
 
 class ArticleAlreadyFavoritedException(BaseInternalException):
-    """Exception raised when article not found in database."""
+    """Exception raised when article already marked favorited."""
 
     _status_code = 400
     _message = "Article has already been marked as a favorite."
 
 
 class ArticleNotFavoritedException(BaseInternalException):
-    """Exception raised when article not found in database."""
+    """Exception raised when article is not favorited."""
 
     _status_code = 400
     _message = "Article is not favorited."
+
+
+class ArticlePermissionException(BaseInternalException):
+    """Exception raised when user does not have permission to access the article."""
+
+    _status_code = 403
+    _message = "Current user does not have permission to access the article."
 
 
 class EmailAlreadyTakenException(BaseInternalException):

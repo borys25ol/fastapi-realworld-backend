@@ -23,6 +23,11 @@ class IProfileService(abc.ABC):
     ) -> list[ProfileDTO]: ...
 
     @abc.abstractmethod
+    async def get_profiles_by_ids(
+        self, session: Any, user_ids: list[int], current_user: UserDTO
+    ) -> list[ProfileDTO]: ...
+
+    @abc.abstractmethod
     async def add_user_into_followers(
         self, session: Any, username: str, current_user: UserDTO
     ) -> None: ...

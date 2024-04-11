@@ -18,13 +18,15 @@ class TagRepository(ITagRepository):
         self._tag_mapper = tag_mapper
 
     async def create(self, session: AsyncSession, tags: list[str]) -> list[TagDTO]:
-        query = (
+        insert_query = (
             insert(Tag)
             .on_conflict_do_nothing()
             .values([{"tag": tag, "created_at": datetime.now()} for tag in tags])
-            .returning(Tag)
         )
-        tags = await session.scalars(query)
+        select_query = select(Tag).where(Tag.tag.in_(tags))
+        await session.execute(insert_query)
+
+        tags = await session.scalars(select_query)
         return [self._tag_mapper.to_dto(tag) for tag in tags]
 
     async def get_all(self, session: AsyncSession) -> list[TagDTO]:

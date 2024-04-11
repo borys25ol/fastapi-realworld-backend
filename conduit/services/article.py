@@ -4,12 +4,14 @@ from conduit.core.exceptions import (
     ArticleAlreadyFavoritedException,
     ArticleNotFavoritedException,
     ArticleNotFoundException,
+    ArticlePermissionException,
 )
 from conduit.domain.dtos.article import (
     ArticleDTO,
     ArticlesFeedDTO,
     ArticleWithExtraDTO,
     CreateArticleDTO,
+    UpdateArticleDTO,
 )
 from conduit.domain.dtos.profile import ProfileDTO
 from conduit.domain.dtos.user import UserDTO
@@ -76,6 +78,65 @@ class ArticleService(IArticleService):
             article=article,
             profile=profile,
             user_id=current_user.id if current_user else None,
+        )
+
+    async def delete_article_by_slug(
+        self, session: AsyncSession, slug: str, current_user: UserDTO
+    ) -> None:
+        article = await self._article_repo.get_by_slug(session=session, slug=slug)
+        if not article:
+            raise ArticleNotFoundException()
+
+        if article.author_id != current_user.id:
+            raise ArticlePermissionException()
+
+        await self._article_repo.delete_by_slug(session=session, slug=slug)
+
+    async def update_article_by_slug(
+        self,
+        session: AsyncSession,
+        slug: str,
+        article_to_update: UpdateArticleDTO,
+        current_user: UserDTO,
+    ) -> ArticleWithExtraDTO:
+        article = await self._article_repo.get_by_slug(session=session, slug=slug)
+        if not article:
+            raise ArticleNotFoundException()
+
+        if article.author_id != current_user.id:
+            raise ArticlePermissionException()
+
+        article = await self._article_repo.update_by_slug(
+            session=session, slug=slug, update_item=article_to_update
+        )
+        profile = await self._profile_service.get_profile_by_user_id(
+            session=session, user_id=article.author_id, current_user=current_user
+        )
+        return await self._get_article_info(
+            session=session, article=article, profile=profile, user_id=current_user.id
+        )
+
+    async def get_global_articles(
+        self, session: AsyncSession, current_user: UserDTO
+    ) -> ArticlesFeedDTO:
+        articles = await self._article_repo.get_all(session=session)
+        author_ids = {article.author_id for article in articles}
+        articles_count = await self._article_repo.count_all(session=session)
+        profiles = await self._profile_service.get_profiles_by_ids(
+            session=session, user_ids=list(author_ids), current_user=current_user
+        )
+        profiles_map = {profile.user_id: profile for profile in profiles}
+        articles_with_extra = [
+            await self._get_article_info(
+                session=session,
+                article=article,
+                profile=profiles_map[article.author_id],
+                user_id=current_user.id,
+            )
+            for article in articles
+        ]
+        return ArticlesFeedDTO(
+            articles=articles_with_extra, articles_count=articles_count
         )
 
     async def get_articles_by_following_authors(

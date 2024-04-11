@@ -82,6 +82,24 @@ class ProfileService(IProfileService):
             for user_dto in following_users
         ]
 
+    async def get_profiles_by_ids(
+        self, session: AsyncSession, user_ids: list[int], current_user: UserDTO
+    ) -> list[ProfileDTO]:
+        target_user = await self._user_repo.get_by_ids(session=session, ids=user_ids)
+        following_user_ids = await self._follower_repo.get(
+            session=session, follower_id=current_user.id
+        )
+        return [
+            ProfileDTO(
+                user_id=user_dto.id,
+                username=user_dto.username,
+                bio=user_dto.bio,
+                image=user_dto.image_url,
+                following=user_dto.id in following_user_ids,
+            )
+            for user_dto in target_user
+        ]
+
     async def add_user_into_followers(
         self, session: AsyncSession, username: str, current_user: UserDTO
     ) -> None:
