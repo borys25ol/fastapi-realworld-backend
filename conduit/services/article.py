@@ -134,15 +134,9 @@ class ArticleService(IArticleService):
             author=author,
             favorited=favorited,
         )
-        articles_count = await self._article_repo.count_by_filters(
-            session=session, tag=tag, author=author, favorited=favorited
+        profiles_map = await self._get_profiles_mapping(
+            session=session, articles=articles, current_user=current_user
         )
-        profiles = await self._profile_service.get_profiles_by_ids(
-            session=session,
-            user_ids=list({article.author_id for article in articles}),
-            current_user=current_user,
-        )
-        profiles_map = {profile.user_id: profile for profile in profiles}
         articles_with_extra = [
             await self._get_article_info(
                 session=session,
@@ -152,6 +146,9 @@ class ArticleService(IArticleService):
             )
             for article in articles
         ]
+        articles_count = await self._article_repo.count_by_filters(
+            session=session, tag=tag, author=author, favorited=favorited
+        )
         return ArticlesFeedDTO(
             articles=articles_with_extra, articles_count=articles_count
         )
@@ -162,26 +159,21 @@ class ArticleService(IArticleService):
         articles = await self._article_repo.get_by_following_profiles(
             session=session, user_id=current_user.id, limit=limit, offset=offset
         )
-        following_profiles = await self._profile_service.get_following_profiles_by_ids(
-            session=session,
-            user_ids=[article.author_id for article in articles],
-            current_user=current_user,
-        )
-        following_profiles_map = {
-            profile.user_id: profile for profile in following_profiles
-        }
-        articles_count = await self._article_repo.count_by_following_profiles(
-            session=session, user_id=current_user.id
+        profiles_map = await self._get_profiles_mapping(
+            session=session, articles=articles, current_user=current_user
         )
         articles_with_extra = [
             await self._get_article_info(
                 session=session,
                 article=article,
-                profile=following_profiles_map[article.author_id],
+                profile=profiles_map[article.author_id],
                 user_id=current_user.id,
             )
             for article in articles
         ]
+        articles_count = await self._article_repo.count_by_following_profiles(
+            session=session, user_id=current_user.id
+        )
         return ArticlesFeedDTO(
             articles=articles_with_extra, articles_count=articles_count
         )
@@ -250,3 +242,16 @@ class ArticleService(IArticleService):
             favorited=is_favorited_by_user,
             favorites_count=favorites_count,
         )
+
+    async def _get_profiles_mapping(
+        self,
+        session: AsyncSession,
+        articles: list[ArticleDTO],
+        current_user: UserDTO | None,
+    ) -> dict[int, ProfileDTO]:
+        following_profiles = await self._profile_service.get_profiles_by_user_ids(
+            session=session,
+            user_ids=[article.author_id for article in articles],
+            current_user=current_user,
+        )
+        return {profile.user_id: profile for profile in following_profiles}

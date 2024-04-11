@@ -18,13 +18,8 @@ class IProfileService(abc.ABC):
     ) -> ProfileDTO: ...
 
     @abc.abstractmethod
-    async def get_profiles_by_ids(
+    async def get_profiles_by_user_ids(
         self, session: Any, user_ids: list[int], current_user: UserDTO | None
-    ) -> list[ProfileDTO]: ...
-
-    @abc.abstractmethod
-    async def get_following_profiles_by_ids(
-        self, session: Any, user_ids: list[int], current_user: UserDTO
     ) -> list[ProfileDTO]: ...
 
     @abc.abstractmethod
