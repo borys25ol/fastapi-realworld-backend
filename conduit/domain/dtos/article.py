@@ -16,7 +16,7 @@ class ArticleDTO:
     updated_at: str
 
 
-@dataclass(frozen=True)
+@dataclass
 class ArticleWithExtraDTO:
     article: ArticleDTO
     profile: ProfileDTO

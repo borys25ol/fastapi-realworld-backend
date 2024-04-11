@@ -55,3 +55,35 @@ async def create_article(
         session=session, author_id=current_user.id, article_to_create=payload.to_dto()
     )
     return ArticleResponse.from_dto(dto=article_dto)
+
+
+@router.post("/{slug}/favorite", response_model=ArticleResponse)
+async def favorite_article(
+    slug: str,
+    session: DBSession,
+    current_user: CurrentUser,
+    article_service: IArticleService,
+) -> ArticleResponse:
+    """
+    Favorite an article.
+    """
+    article_dto = await article_service.add_article_into_favorites(
+        session=session, slug=slug, current_user=current_user
+    )
+    return ArticleResponse.from_dto(dto=article_dto)
+
+
+@router.delete("/{slug}/favorite", response_model=ArticleResponse)
+async def unfavorite_article(
+    slug: str,
+    session: DBSession,
+    current_user: CurrentUser,
+    article_service: IArticleService,
+) -> ArticleResponse:
+    """
+    Unfavorite an article.
+    """
+    article_dto = await article_service.remove_article_from_favorites(
+        session=session, slug=slug, current_user=current_user
+    )
+    return ArticleResponse.from_dto(dto=article_dto)

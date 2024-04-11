@@ -1,5 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from conduit.core.exceptions import (
+    ArticleAlreadyFavoritedException,
+    ArticleNotFavoritedException,
+    ArticleNotFoundException,
+)
 from conduit.domain.dtos.article import (
     ArticleDTO,
     ArticlesFeedDTO,
@@ -60,6 +65,9 @@ class ArticleService(IArticleService):
         self, session: AsyncSession, slug: str, current_user: UserDTO | None
     ) -> ArticleWithExtraDTO:
         article = await self._article_repo.get_by_slug(session=session, slug=slug)
+        if not article:
+            raise ArticleNotFoundException()
+
         profile = await self._profile_service.get_profile_by_user_id(
             session=session, user_id=article.author_id, current_user=current_user
         )
@@ -97,6 +105,40 @@ class ArticleService(IArticleService):
         return ArticlesFeedDTO(
             articles=articles_with_extra, articles_count=articles_count
         )
+
+    async def add_article_into_favorites(
+        self, session: AsyncSession, slug: str, current_user: UserDTO
+    ) -> ArticleWithExtraDTO:
+        article = await self.get_article_by_slug(
+            session=session, slug=slug, current_user=current_user
+        )
+        if article.favorited:
+            raise ArticleAlreadyFavoritedException()
+
+        await self._favorite_repo.create(
+            session=session, article_id=article.article.id, user_id=current_user.id
+        )
+        article.favorited = True
+        article.favorites_count = article.favorites_count + 1
+
+        return article
+
+    async def remove_article_from_favorites(
+        self, session: AsyncSession, slug: str, current_user: UserDTO
+    ) -> ArticleWithExtraDTO:
+        article = await self.get_article_by_slug(
+            session=session, slug=slug, current_user=current_user
+        )
+        if not article.favorited:
+            raise ArticleNotFavoritedException()
+
+        await self._favorite_repo.delete(
+            session=session, article_id=article.article.id, user_id=current_user.id
+        )
+        article.favorited = False
+        article.favorites_count = article.favorites_count - 1
+
+        return article
 
     async def _get_article_info(
         self,

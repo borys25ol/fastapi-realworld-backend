@@ -25,3 +25,13 @@ class IArticleService(abc.ABC):
     async def get_articles_by_following_authors(
         self, session: Any, current_user: UserDTO
     ) -> ArticlesFeedDTO: ...
+
+    @abc.abstractmethod
+    async def add_article_into_favorites(
+        self, session: Any, slug: str, current_user: UserDTO
+    ) -> ArticleWithExtraDTO: ...
+
+    @abc.abstractmethod
+    async def remove_article_from_favorites(
+        self, session: Any, slug: str, current_user: UserDTO
+    ) -> ArticleWithExtraDTO: ...

@@ -28,17 +28,17 @@ class FavoriteRepository(IFavoriteRepository):
         return result.scalar()
 
     async def create(
-        self, session: AsyncSession, author_id: int, article_id: int
+        self, session: AsyncSession, article_id: int, user_id: int
     ) -> None:
         query = insert(Favorite).values(
-            user_id=author_id, article_id=article_id, created_at=datetime.now()
+            user_id=user_id, article_id=article_id, created_at=datetime.now()
         )
         await session.execute(query)
 
     async def delete(
-        self, session: AsyncSession, author_id: int, article_id: int
+        self, session: AsyncSession, article_id: int, user_id: int
     ) -> None:
         query = delete(Favorite).where(
-            Favorite.user_id == author_id, Favorite.article_id == article_id
+            Favorite.user_id == user_id, Favorite.article_id == article_id
         )
         await session.execute(query)

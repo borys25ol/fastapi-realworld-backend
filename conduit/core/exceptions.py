@@ -42,10 +42,25 @@ class BaseInternalException(Exception):
         )
 
 
-class TagNotFoundException(BaseInternalException):
-    """Exception raised when tag not found in database."""
+class ArticleNotFoundException(BaseInternalException):
+    """Exception raised when article not found in database."""
 
     _status_code = 404
+    _message = "Article with this slug does not exist."
+
+
+class ArticleAlreadyFavoritedException(BaseInternalException):
+    """Exception raised when article not found in database."""
+
+    _status_code = 400
+    _message = "Article has already been marked as a favorite."
+
+
+class ArticleNotFavoritedException(BaseInternalException):
+    """Exception raised when article not found in database."""
+
+    _status_code = 400
+    _message = "Article is not favorited."
 
 
 class EmailAlreadyTakenException(BaseInternalException):
