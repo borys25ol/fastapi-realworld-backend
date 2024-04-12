@@ -24,12 +24,12 @@ class IArticleRepository(abc.ABC):
     ) -> ArticleDTO: ...
 
     @abc.abstractmethod
-    async def get_by_following_profiles(
+    async def get_all_by_following_profiles(
         self, session: Any, user_id: int, limit: int, offset: int
     ) -> list[ArticleDTO]: ...
 
     @abc.abstractmethod
-    async def get_by_filters(
+    async def get_all_by_filters(
         self,
         session: Any,
         limit: int,

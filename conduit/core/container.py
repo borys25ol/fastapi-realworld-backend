@@ -123,7 +123,6 @@ class Container:
 
     def article_service(self) -> IArticleService:
         return ArticleService(
-            tag_repo=self.tags_repository(),
             article_repo=self.article_repository(),
             article_tag_repo=self.article_tag_repository(),
             favorite_repo=self.favorite_repository(),

@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import insert, select
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.domain.dtos.tag import TagDTO
@@ -15,22 +16,37 @@ class ArticleTagRepository(IArticleTagRepository):
     def __init__(self, tag_mapper: IModelMapper[Tag, TagDTO]):
         self._tag_mapper = tag_mapper
 
-    async def create(
-        self, session: AsyncSession, article_id: int, tags: list[TagDTO]
-    ) -> None:
-        query = insert(ArticleTag).values(
-            [
-                {
-                    "article_id": article_id,
-                    "tag_id": tag.id,
-                    "created_at": datetime.now(),
-                }
-                for tag in tags
-            ]
+    async def create_many(
+        self, session: AsyncSession, article_id: int, tags: list[str]
+    ) -> list[TagDTO]:
+        insert_query = (
+            insert(Tag)
+            .on_conflict_do_nothing()
+            .values([dict(tag=tag, created_at=datetime.now()) for tag in tags])
         )
-        await session.execute(query)
+        await session.execute(insert_query)
 
-    async def get_by_article_id(
+        select_query = select(Tag).where(Tag.tag.in_(tags))
+        tags = await session.scalars(select_query)
+        tags = [self._tag_mapper.to_dto(tag) for tag in tags]
+
+        link_query = (
+            insert(ArticleTag)
+            .on_conflict_do_nothing()
+            .values(
+                [
+                    dict(
+                        article_id=article_id, tag_id=tag.id, created_at=datetime.now()
+                    )
+                    for tag in tags
+                ]
+            )
+        )
+        await session.execute(link_query)
+
+        return tags
+
+    async def get_all_by_article_id(
         self, session: AsyncSession, article_id: int
     ) -> list[TagDTO]:
         query = select(Tag, ArticleTag).where(

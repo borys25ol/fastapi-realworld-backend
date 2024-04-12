@@ -44,7 +44,7 @@ class UserRepository(IUserRepository):
         user = await session.scalar(query)
         return self._user_mapper.to_dto(user)
 
-    async def get_by_ids(
+    async def get_all_by_ids(
         self, session: AsyncSession, ids: Collection[int]
     ) -> list[UserDTO]:
         query = select(User).where(User.id.in_(ids))

@@ -73,7 +73,7 @@ class ArticleRepository(IArticleRepository):
         article = await session.scalar(query)
         return self._article_mapper.to_dto(article)
 
-    async def get_by_following_profiles(
+    async def get_all_by_following_profiles(
         self, session: AsyncSession, user_id: int, limit: int, offset: int
     ) -> list[ArticleDTO]:
         query = (
@@ -106,7 +106,7 @@ class ArticleRepository(IArticleRepository):
         articles = await session.execute(query)
         return [self._article_mapper.to_dto(article) for article in articles]
 
-    async def get_by_filters(
+    async def get_all_by_filters(
         self,
         session: AsyncSession,
         limit: int,

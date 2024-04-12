@@ -16,12 +16,10 @@ from conduit.domain.dtos.article import (
     UpdateArticleDTO,
 )
 from conduit.domain.dtos.profile import ProfileDTO
-from conduit.domain.dtos.tag import TagDTO
 from conduit.domain.dtos.user import UserDTO
 from conduit.domain.repositories.article import IArticleRepository
 from conduit.domain.repositories.article_tag import IArticleTagRepository
 from conduit.domain.repositories.favorite import IFavoriteRepository
-from conduit.domain.repositories.tag import ITagRepository
 from conduit.domain.services.article import IArticleService
 from conduit.domain.services.profile import IProfileService
 
@@ -31,13 +29,11 @@ class ArticleService(IArticleService):
 
     def __init__(
         self,
-        tag_repo: ITagRepository,
         article_repo: IArticleRepository,
         article_tag_repo: IArticleTagRepository,
         favorite_repo: IFavoriteRepository,
         profile_service: IProfileService,
     ) -> None:
-        self._tag_repo = tag_repo
         self._article_repo = article_repo
         self._article_tag_repo = article_tag_repo
         self._favorite_repo = favorite_repo
@@ -52,10 +48,9 @@ class ArticleService(IArticleService):
         profile = await self._profile_service.get_profile_by_user_id(
             session=session, user_id=author_id
         )
-        tags = await self._tag_repo.create(session=session, tags=article_to_create.tags)
-
-        await self._link_article_with_tags(session=session, article=article, tags=tags)
-
+        await self._article_tag_repo.create_many(
+            session=session, article_id=article.id, tags=article_to_create.tags
+        )
         return ArticleWithMetaDTO(
             **asdict(article),
             author=profile,
@@ -127,7 +122,7 @@ class ArticleService(IArticleService):
         author: str | None = None,
         favorited: str | None = None,
     ) -> ArticlesFeedDTO:
-        articles = await self._article_repo.get_by_filters(
+        articles = await self._article_repo.get_all_by_filters(
             session=session,
             limit=limit,
             offset=offset,
@@ -157,7 +152,7 @@ class ArticleService(IArticleService):
     async def get_articles_by_following_profiles(
         self, session: AsyncSession, current_user: UserDTO, limit: int, offset: int
     ) -> ArticlesFeedDTO:
-        articles = await self._article_repo.get_by_following_profiles(
+        articles = await self._article_repo.get_all_by_following_profiles(
             session=session, user_id=current_user.id, limit=limit, offset=offset
         )
         profiles_map = await self._get_profiles_mapping(
@@ -224,7 +219,7 @@ class ArticleService(IArticleService):
     ) -> ArticleWithMetaDTO:
         article_tags = [
             tag.tag
-            for tag in await self._article_tag_repo.get_by_article_id(
+            for tag in await self._article_tag_repo.get_all_by_article_id(
                 session=session, article_id=article.id
             )
         ]
@@ -258,10 +253,3 @@ class ArticleService(IArticleService):
             current_user=current_user,
         )
         return {profile.user_id: profile for profile in following_profiles}
-
-    async def _link_article_with_tags(
-        self, session: AsyncSession, article: ArticleDTO, tags: list[TagDTO]
-    ) -> None:
-        await self._article_tag_repo.create(
-            session=session, article_id=article.id, tags=tags
-        )

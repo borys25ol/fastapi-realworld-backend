@@ -65,9 +65,15 @@ class ProfileService(IProfileService):
     async def get_profiles_by_user_ids(
         self, session: AsyncSession, user_ids: list[int], current_user: UserDTO | None
     ) -> list[ProfileDTO]:
-        target_users = await self._user_repo.get_by_ids(session=session, ids=user_ids)
+        target_users = await self._user_repo.get_all_by_ids(
+            session=session, ids=user_ids
+        )
         following_user_ids = (
-            await self._follower_repo.get(session=session, follower_id=current_user.id)
+            await self._follower_repo.get_all_by_follower_id_and_following_ids(
+                session=session,
+                follower_id=current_user.id,
+                following_ids=[user.id for user in target_users],
+            )
             if current_user
             else []
         )
