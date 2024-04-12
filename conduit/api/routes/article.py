@@ -5,7 +5,6 @@ from starlette import status
 from conduit.api.schemas.requests.article import (
     DEFAULT_ARTICLES_LIMIT,
     DEFAULT_ARTICLES_OFFSET,
-    ArticlesFilters,
     CreateArticleRequest,
     UpdateArticleRequest,
 )

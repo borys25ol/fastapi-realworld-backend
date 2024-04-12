@@ -1,4 +1,3 @@
-import datetime
 from dataclasses import dataclass
 
 from conduit.domain.dtos.profile import ProfileDTO
@@ -16,41 +15,26 @@ class ArticleDTO:
     updated_at: str
 
 
-@dataclass
-class ArticleWithExtraDTO:
-    article: ArticleDTO
-    profile: ProfileDTO
+@dataclass(frozen=True)
+class ArticleWithMetaDTO:
+    id: int
+    author_id: int
+    slug: str
+    title: str
+    description: str
+    body: str
     tags: list[str]
+    author: ProfileDTO
+    created_at: str
+    updated_at: str
     favorited: bool
     favorites_count: int
 
 
 @dataclass(frozen=True)
 class ArticlesFeedDTO:
-    articles: list[ArticleWithExtraDTO]
+    articles: list[ArticleWithMetaDTO]
     articles_count: int
-
-
-@dataclass(frozen=True)
-class ArticleAuthorDTO:
-    username: str
-    bio: str
-    image: str | None
-    following: bool
-
-
-@dataclass(frozen=True)
-class ArticleResponseDTO:
-    slug: str
-    title: str
-    description: str
-    body: str
-    tags: list[str]
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
-    favorited: bool
-    favorites_count: int
-    author: ArticleAuthorDTO
 
 
 @dataclass(frozen=True)

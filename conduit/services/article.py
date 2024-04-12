@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.core.exceptions import (
@@ -9,11 +11,12 @@ from conduit.core.exceptions import (
 from conduit.domain.dtos.article import (
     ArticleDTO,
     ArticlesFeedDTO,
-    ArticleWithExtraDTO,
+    ArticleWithMetaDTO,
     CreateArticleDTO,
     UpdateArticleDTO,
 )
 from conduit.domain.dtos.profile import ProfileDTO
+from conduit.domain.dtos.tag import TagDTO
 from conduit.domain.dtos.user import UserDTO
 from conduit.domain.repositories.article import IArticleRepository
 from conduit.domain.repositories.article_tag import IArticleTagRepository
@@ -42,7 +45,7 @@ class ArticleService(IArticleService):
 
     async def create_new_article(
         self, session: AsyncSession, author_id: int, article_to_create: CreateArticleDTO
-    ) -> ArticleWithExtraDTO:
+    ) -> ArticleWithMetaDTO:
         article = await self._article_repo.create(
             session=session, author_id=author_id, create_item=article_to_create
         )
@@ -51,13 +54,11 @@ class ArticleService(IArticleService):
         )
         tags = await self._tag_repo.create(session=session, tags=article_to_create.tags)
 
-        # Associate tags with the article.
-        await self._article_tag_repo.create(
-            session=session, article_id=article.id, tags=tags
-        )
-        return ArticleWithExtraDTO(
-            article=article,
-            profile=profile,
+        await self._link_article_with_tags(session=session, article=article, tags=tags)
+
+        return ArticleWithMetaDTO(
+            **asdict(article),
+            author=profile,
             tags=article_to_create.tags,
             favorited=False,
             favorites_count=0,
@@ -65,7 +66,7 @@ class ArticleService(IArticleService):
 
     async def get_article_by_slug(
         self, session: AsyncSession, slug: str, current_user: UserDTO | None
-    ) -> ArticleWithExtraDTO:
+    ) -> ArticleWithMetaDTO:
         article = await self._article_repo.get_by_slug(session=session, slug=slug)
         if not article:
             raise ArticleNotFoundException()
@@ -98,7 +99,7 @@ class ArticleService(IArticleService):
         slug: str,
         article_to_update: UpdateArticleDTO,
         current_user: UserDTO,
-    ) -> ArticleWithExtraDTO:
+    ) -> ArticleWithMetaDTO:
         article = await self._article_repo.get_by_slug(session=session, slug=slug)
         if not article:
             raise ArticleNotFoundException()
@@ -180,7 +181,7 @@ class ArticleService(IArticleService):
 
     async def add_article_into_favorites(
         self, session: AsyncSession, slug: str, current_user: UserDTO
-    ) -> ArticleWithExtraDTO:
+    ) -> ArticleWithMetaDTO:
         article = await self.get_article_by_slug(
             session=session, slug=slug, current_user=current_user
         )
@@ -188,16 +189,17 @@ class ArticleService(IArticleService):
             raise ArticleAlreadyFavoritedException()
 
         await self._favorite_repo.create(
-            session=session, article_id=article.article.id, user_id=current_user.id
+            session=session, article_id=article.id, user_id=current_user.id
         )
-        article.favorited = True
-        article.favorites_count = article.favorites_count + 1
-
-        return article
+        return ArticleWithMetaDTO(
+            **asdict(article),
+            favorited=True,
+            favorites_count=article.favorites_count + 1,
+        )
 
     async def remove_article_from_favorites(
         self, session: AsyncSession, slug: str, current_user: UserDTO
-    ) -> ArticleWithExtraDTO:
+    ) -> ArticleWithMetaDTO:
         article = await self.get_article_by_slug(
             session=session, slug=slug, current_user=current_user
         )
@@ -205,12 +207,13 @@ class ArticleService(IArticleService):
             raise ArticleNotFavoritedException()
 
         await self._favorite_repo.delete(
-            session=session, article_id=article.article.id, user_id=current_user.id
+            session=session, article_id=article.id, user_id=current_user.id
         )
-        article.favorited = False
-        article.favorites_count = article.favorites_count - 1
-
-        return article
+        return ArticleWithMetaDTO(
+            **asdict(article),
+            favorited=False,
+            favorites_count=article.favorites_count - 1,
+        )
 
     async def _get_article_info(
         self,
@@ -218,7 +221,7 @@ class ArticleService(IArticleService):
         article: ArticleDTO,
         profile: ProfileDTO,
         user_id: int | None = None,
-    ) -> ArticleWithExtraDTO:
+    ) -> ArticleWithMetaDTO:
         article_tags = [
             tag.tag
             for tag in await self._article_tag_repo.get_by_article_id(
@@ -235,9 +238,9 @@ class ArticleService(IArticleService):
             if user_id
             else False
         )
-        return ArticleWithExtraDTO(
-            article=article,
-            profile=profile,
+        return ArticleWithMetaDTO(
+            **asdict(article),
+            author=profile,
             tags=article_tags,
             favorited=is_favorited_by_user,
             favorites_count=favorites_count,
@@ -255,3 +258,10 @@ class ArticleService(IArticleService):
             current_user=current_user,
         )
         return {profile.user_id: profile for profile in following_profiles}
+
+    async def _link_article_with_tags(
+        self, session: AsyncSession, article: ArticleDTO, tags: list[TagDTO]
+    ) -> None:
+        await self._article_tag_repo.create(
+            session=session, article_id=article.id, tags=tags
+        )

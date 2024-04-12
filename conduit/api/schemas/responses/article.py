@@ -2,7 +2,7 @@ import datetime
 
 from pydantic import BaseModel, Field
 
-from conduit.domain.dtos.article import ArticlesFeedDTO, ArticleWithExtraDTO
+from conduit.domain.dtos.article import ArticlesFeedDTO, ArticleWithMetaDTO
 
 
 class ArticleAuthorData(BaseModel):
@@ -29,22 +29,22 @@ class ArticleResponse(BaseModel):
     article: ArticleData
 
     @classmethod
-    def from_dto(cls, dto: ArticleWithExtraDTO) -> "ArticleResponse":
+    def from_dto(cls, dto: ArticleWithMetaDTO) -> "ArticleResponse":
         article = ArticleData(
-            slug=dto.article.slug,
-            title=dto.article.title,
-            description=dto.article.description,
-            body=dto.article.body,
+            slug=dto.slug,
+            title=dto.title,
+            description=dto.description,
+            body=dto.body,
             tagList=dto.tags,
-            createdAt=dto.article.created_at,
-            updatedAt=dto.article.updated_at,
+            createdAt=dto.created_at,
+            updatedAt=dto.updated_at,
             favorited=dto.favorited,
             favoritesCount=dto.favorites_count,
             author=ArticleAuthorData(
-                username=dto.profile.username,
-                bio=dto.profile.bio,
-                image=dto.profile.image,
-                following=dto.profile.following,
+                username=dto.author.username,
+                bio=dto.author.bio,
+                image=dto.author.image,
+                following=dto.author.following,
             ),
         )
         return ArticleResponse(article=article)
