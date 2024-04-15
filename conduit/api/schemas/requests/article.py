@@ -22,9 +22,9 @@ class CreateArticleData(BaseModel):
 
 
 class UpdateArticleData(BaseModel):
-    title: str
-    description: str
-    body: str
+    title: str | None = Field(None)
+    description: str | None = Field(None)
+    body: str | None = Field(None)
 
 
 class UpdateArticleRequest(BaseModel):
