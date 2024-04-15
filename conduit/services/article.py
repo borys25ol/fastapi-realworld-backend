@@ -186,10 +186,11 @@ class ArticleService(IArticleService):
         await self._favorite_repo.create(
             session=session, article_id=article.id, user_id=current_user.id
         )
-        return ArticleDTO(
-            **asdict(article),
-            favorited=True,
-            favorites_count=article.favorites_count + 1,
+        return ArticleDTO.with_updated_fields(
+            dto=article,
+            updated_fields=dict(
+                favorited=True, favorites_count=article.favorites_count + 1
+            ),
         )
 
     async def remove_article_from_favorites(
@@ -204,10 +205,11 @@ class ArticleService(IArticleService):
         await self._favorite_repo.delete(
             session=session, article_id=article.id, user_id=current_user.id
         )
-        return ArticleDTO(
-            **asdict(article),
-            favorited=False,
-            favorites_count=article.favorites_count - 1,
+        return ArticleDTO.with_updated_fields(
+            dto=article,
+            updated_fields=dict(
+                favorited=False, favorites_count=article.favorites_count - 1
+            ),
         )
 
     async def _get_article_info(

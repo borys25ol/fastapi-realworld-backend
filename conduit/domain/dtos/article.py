@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+import datetime
+from dataclasses import dataclass, replace
 
 from conduit.domain.dtos.profile import ProfileDTO
 
@@ -11,8 +12,8 @@ class ArticleRecordDTO:
     title: str
     description: str
     body: str
-    created_at: str
-    updated_at: str
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
 
 
 @dataclass(frozen=True)
@@ -25,10 +26,16 @@ class ArticleDTO:
     body: str
     tags: list[str]
     author: ProfileDTO
-    created_at: str
-    updated_at: str
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
     favorited: bool
     favorites_count: int
+
+    @classmethod
+    def with_updated_fields(
+        cls, dto: "ArticleDTO", updated_fields: dict
+    ) -> "ArticleDTO":
+        return replace(dto, **updated_fields)
 
 
 @dataclass(frozen=True)
@@ -47,6 +54,6 @@ class CreateArticleDTO:
 
 @dataclass(frozen=True)
 class UpdateArticleDTO:
-    title: str
-    description: str
-    body: str
+    title: str | None
+    description: str | None
+    body: str | None
