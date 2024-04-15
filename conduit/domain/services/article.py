@@ -2,8 +2,8 @@ import abc
 from typing import Any
 
 from conduit.domain.dtos.article import (
+    ArticleDTO,
     ArticlesFeedDTO,
-    ArticleWithMetaDTO,
     CreateArticleDTO,
     UpdateArticleDTO,
 )
@@ -15,12 +15,12 @@ class IArticleService(abc.ABC):
     @abc.abstractmethod
     async def create_new_article(
         self, session: Any, author_id: int, article_to_create: CreateArticleDTO
-    ) -> ArticleWithMetaDTO: ...
+    ) -> ArticleDTO: ...
 
     @abc.abstractmethod
     async def get_article_by_slug(
         self, session: Any, slug: str, current_user: UserDTO | None
-    ) -> ArticleWithMetaDTO: ...
+    ) -> ArticleDTO: ...
 
     @abc.abstractmethod
     async def delete_article_by_slug(
@@ -51,14 +51,14 @@ class IArticleService(abc.ABC):
         slug: str,
         article_to_update: UpdateArticleDTO,
         current_user: UserDTO,
-    ) -> ArticleWithMetaDTO: ...
+    ) -> ArticleDTO: ...
 
     @abc.abstractmethod
     async def add_article_into_favorites(
         self, session: Any, slug: str, current_user: UserDTO
-    ) -> ArticleWithMetaDTO: ...
+    ) -> ArticleDTO: ...
 
     @abc.abstractmethod
     async def remove_article_from_favorites(
         self, session: Any, slug: str, current_user: UserDTO
-    ) -> ArticleWithMetaDTO: ...
+    ) -> ArticleDTO: ...

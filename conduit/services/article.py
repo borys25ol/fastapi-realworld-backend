@@ -9,9 +9,9 @@ from conduit.core.exceptions import (
     ArticlePermissionException,
 )
 from conduit.domain.dtos.article import (
+    ArticleDTO,
     ArticleRecordDTO,
     ArticlesFeedDTO,
-    ArticleWithMetaDTO,
     CreateArticleDTO,
     UpdateArticleDTO,
 )
@@ -41,7 +41,7 @@ class ArticleService(IArticleService):
 
     async def create_new_article(
         self, session: AsyncSession, author_id: int, article_to_create: CreateArticleDTO
-    ) -> ArticleWithMetaDTO:
+    ) -> ArticleDTO:
         article = await self._article_repo.create(
             session=session, author_id=author_id, create_item=article_to_create
         )
@@ -51,7 +51,7 @@ class ArticleService(IArticleService):
         await self._article_tag_repo.create_many(
             session=session, article_id=article.id, tags=article_to_create.tags
         )
-        return ArticleWithMetaDTO(
+        return ArticleDTO(
             **asdict(article),
             author=profile,
             tags=article_to_create.tags,
@@ -61,7 +61,7 @@ class ArticleService(IArticleService):
 
     async def get_article_by_slug(
         self, session: AsyncSession, slug: str, current_user: UserDTO | None
-    ) -> ArticleWithMetaDTO:
+    ) -> ArticleDTO:
         article = await self._article_repo.get_by_slug(session=session, slug=slug)
         if not article:
             raise ArticleNotFoundException()
@@ -94,7 +94,7 @@ class ArticleService(IArticleService):
         slug: str,
         article_to_update: UpdateArticleDTO,
         current_user: UserDTO,
-    ) -> ArticleWithMetaDTO:
+    ) -> ArticleDTO:
         article = await self._article_repo.get_by_slug(session=session, slug=slug)
         if not article:
             raise ArticleNotFoundException()
@@ -176,7 +176,7 @@ class ArticleService(IArticleService):
 
     async def add_article_into_favorites(
         self, session: AsyncSession, slug: str, current_user: UserDTO
-    ) -> ArticleWithMetaDTO:
+    ) -> ArticleDTO:
         article = await self.get_article_by_slug(
             session=session, slug=slug, current_user=current_user
         )
@@ -186,7 +186,7 @@ class ArticleService(IArticleService):
         await self._favorite_repo.create(
             session=session, article_id=article.id, user_id=current_user.id
         )
-        return ArticleWithMetaDTO(
+        return ArticleDTO(
             **asdict(article),
             favorited=True,
             favorites_count=article.favorites_count + 1,
@@ -194,7 +194,7 @@ class ArticleService(IArticleService):
 
     async def remove_article_from_favorites(
         self, session: AsyncSession, slug: str, current_user: UserDTO
-    ) -> ArticleWithMetaDTO:
+    ) -> ArticleDTO:
         article = await self.get_article_by_slug(
             session=session, slug=slug, current_user=current_user
         )
@@ -204,7 +204,7 @@ class ArticleService(IArticleService):
         await self._favorite_repo.delete(
             session=session, article_id=article.id, user_id=current_user.id
         )
-        return ArticleWithMetaDTO(
+        return ArticleDTO(
             **asdict(article),
             favorited=False,
             favorites_count=article.favorites_count - 1,
@@ -216,7 +216,7 @@ class ArticleService(IArticleService):
         article: ArticleRecordDTO,
         profile: ProfileDTO,
         user_id: int | None = None,
-    ) -> ArticleWithMetaDTO:
+    ) -> ArticleDTO:
         article_tags = [
             tag.tag
             for tag in await self._article_tag_repo.get_all_by_article_id(
@@ -233,7 +233,7 @@ class ArticleService(IArticleService):
             if user_id
             else False
         )
-        return ArticleWithMetaDTO(
+        return ArticleDTO(
             **asdict(article),
             author=profile,
             tags=article_tags,

@@ -16,7 +16,7 @@ class ArticleRecordDTO:
 
 
 @dataclass(frozen=True)
-class ArticleWithMetaDTO:
+class ArticleDTO:
     id: int
     author_id: int
     slug: str
@@ -33,7 +33,7 @@ class ArticleWithMetaDTO:
 
 @dataclass(frozen=True)
 class ArticlesFeedDTO:
-    articles: list[ArticleWithMetaDTO]
+    articles: list[ArticleDTO]
     articles_count: int
 
 
