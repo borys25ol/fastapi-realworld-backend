@@ -5,7 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.functions import count
 
 from conduit.core.utils.slug import get_slug_from_title
-from conduit.domain.dtos.article import ArticleDTO, CreateArticleDTO, UpdateArticleDTO
+from conduit.domain.dtos.article import (
+    ArticleRecordDTO,
+    CreateArticleDTO,
+    UpdateArticleDTO,
+)
 from conduit.domain.mapper import IModelMapper
 from conduit.domain.repositories.article import IArticleRepository
 from conduit.infrastructure.models import (
@@ -20,12 +24,12 @@ from conduit.infrastructure.models import (
 
 class ArticleRepository(IArticleRepository):
 
-    def __init__(self, article_mapper: IModelMapper[Article, ArticleDTO]):
+    def __init__(self, article_mapper: IModelMapper[Article, ArticleRecordDTO]):
         self._article_mapper = article_mapper
 
     async def create(
         self, session: AsyncSession, author_id: int, create_item: CreateArticleDTO
-    ) -> ArticleDTO:
+    ) -> ArticleRecordDTO:
         query = (
             insert(Article)
             .values(
@@ -42,7 +46,9 @@ class ArticleRepository(IArticleRepository):
         result = await session.execute(query)
         return self._article_mapper.to_dto(result.scalar())
 
-    async def get_by_slug(self, session: AsyncSession, slug: str) -> ArticleDTO | None:
+    async def get_by_slug(
+        self, session: AsyncSession, slug: str
+    ) -> ArticleRecordDTO | None:
         query = select(Article).where(Article.slug == slug)
         if article := await session.scalar(query):
             return self._article_mapper.to_dto(article)
@@ -53,7 +59,7 @@ class ArticleRepository(IArticleRepository):
 
     async def update_by_slug(
         self, session: AsyncSession, slug: str, update_item: UpdateArticleDTO
-    ) -> ArticleDTO:
+    ) -> ArticleRecordDTO:
         query = (
             update(Article)
             .where(Article.slug == slug)
@@ -75,7 +81,7 @@ class ArticleRepository(IArticleRepository):
 
     async def get_all_by_following_profiles(
         self, session: AsyncSession, user_id: int, limit: int, offset: int
-    ) -> list[ArticleDTO]:
+    ) -> list[ArticleRecordDTO]:
         query = (
             (
                 select(
@@ -114,7 +120,7 @@ class ArticleRepository(IArticleRepository):
         tag: str | None = None,
         author: str | None = None,
         favorited: str | None = None,
-    ) -> list[ArticleDTO]:
+    ) -> list[ArticleRecordDTO]:
         query = (
             select(
                 Article.id,

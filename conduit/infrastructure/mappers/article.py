@@ -1,13 +1,13 @@
-from conduit.domain.dtos.article import ArticleDTO
+from conduit.domain.dtos.article import ArticleRecordDTO
 from conduit.domain.mapper import IModelMapper
 from conduit.infrastructure.models import Article
 
 
-class ArticleModelMapper(IModelMapper[Article, ArticleDTO]):
+class ArticleModelMapper(IModelMapper[Article, ArticleRecordDTO]):
 
     @staticmethod
-    def to_dto(model: Article) -> ArticleDTO:
-        dto = ArticleDTO(
+    def to_dto(model: Article) -> ArticleRecordDTO:
+        dto = ArticleRecordDTO(
             id=model.id,
             author_id=model.author_id,
             slug=model.slug,
@@ -20,7 +20,7 @@ class ArticleModelMapper(IModelMapper[Article, ArticleDTO]):
         return dto
 
     @staticmethod
-    def from_dto(dto: ArticleDTO) -> Article:
+    def from_dto(dto: ArticleRecordDTO) -> Article:
         model = Article(
             author_id=dto.author_id,
             slug=dto.slug,

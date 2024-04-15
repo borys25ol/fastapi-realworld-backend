@@ -4,7 +4,7 @@ from conduit.domain.dtos.profile import ProfileDTO
 
 
 @dataclass(frozen=True)
-class ArticleDTO:
+class ArticleRecordDTO:
     id: int
     author_id: int
     slug: str

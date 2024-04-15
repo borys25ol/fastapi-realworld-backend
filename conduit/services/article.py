@@ -9,7 +9,7 @@ from conduit.core.exceptions import (
     ArticlePermissionException,
 )
 from conduit.domain.dtos.article import (
-    ArticleDTO,
+    ArticleRecordDTO,
     ArticlesFeedDTO,
     ArticleWithMetaDTO,
     CreateArticleDTO,
@@ -213,7 +213,7 @@ class ArticleService(IArticleService):
     async def _get_article_info(
         self,
         session: AsyncSession,
-        article: ArticleDTO,
+        article: ArticleRecordDTO,
         profile: ProfileDTO,
         user_id: int | None = None,
     ) -> ArticleWithMetaDTO:
@@ -244,7 +244,7 @@ class ArticleService(IArticleService):
     async def _get_profiles_mapping(
         self,
         session: AsyncSession,
-        articles: list[ArticleDTO],
+        articles: list[ArticleRecordDTO],
         current_user: UserDTO | None,
     ) -> dict[int, ProfileDTO]:
         following_profiles = await self._profile_service.get_profiles_by_user_ids(

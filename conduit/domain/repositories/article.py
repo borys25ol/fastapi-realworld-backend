@@ -1,7 +1,11 @@
 import abc
 from typing import Any
 
-from conduit.domain.dtos.article import ArticleDTO, CreateArticleDTO, UpdateArticleDTO
+from conduit.domain.dtos.article import (
+    ArticleRecordDTO,
+    CreateArticleDTO,
+    UpdateArticleDTO,
+)
 
 
 class IArticleRepository(abc.ABC):
@@ -10,10 +14,10 @@ class IArticleRepository(abc.ABC):
     @abc.abstractmethod
     async def create(
         self, session: Any, author_id: int, create_item: CreateArticleDTO
-    ) -> ArticleDTO: ...
+    ) -> ArticleRecordDTO: ...
 
     @abc.abstractmethod
-    async def get_by_slug(self, session: Any, slug: str) -> ArticleDTO | None: ...
+    async def get_by_slug(self, session: Any, slug: str) -> ArticleRecordDTO | None: ...
 
     @abc.abstractmethod
     async def delete_by_slug(self, session: Any, slug: str) -> None: ...
@@ -21,12 +25,12 @@ class IArticleRepository(abc.ABC):
     @abc.abstractmethod
     async def update_by_slug(
         self, session: Any, slug: str, update_item: UpdateArticleDTO
-    ) -> ArticleDTO: ...
+    ) -> ArticleRecordDTO: ...
 
     @abc.abstractmethod
     async def get_all_by_following_profiles(
         self, session: Any, user_id: int, limit: int, offset: int
-    ) -> list[ArticleDTO]: ...
+    ) -> list[ArticleRecordDTO]: ...
 
     @abc.abstractmethod
     async def get_all_by_filters(
@@ -37,7 +41,7 @@ class IArticleRepository(abc.ABC):
         tag: str | None = None,
         author: str | None = None,
         favorited: str | None = None,
-    ) -> list[ArticleDTO]: ...
+    ) -> list[ArticleRecordDTO]: ...
 
     @abc.abstractmethod
     async def count_by_following_profiles(self, session: Any, user_id: int) -> int: ...
