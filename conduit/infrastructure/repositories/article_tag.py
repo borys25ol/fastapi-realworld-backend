@@ -49,8 +49,12 @@ class ArticleTagRepository(IArticleTagRepository):
     async def get_all_by_article_id(
         self, session: AsyncSession, article_id: int
     ) -> list[TagDTO]:
-        query = select(Tag, ArticleTag).where(
-            (ArticleTag.article_id == article_id) & (ArticleTag.tag_id == Tag.id)
+        query = (
+            select(Tag, ArticleTag)
+            .where(
+                (ArticleTag.article_id == article_id) & (ArticleTag.tag_id == Tag.id)
+            )
+            .order_by(Tag.created_at.desc())
         )
         tags = await session.scalars(query)
         return [self._tag_mapper.to_dto(tag) for tag in tags]
