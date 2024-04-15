@@ -94,7 +94,7 @@ class UserAuthService(IUserAuthService):
             ):
                 raise UserNameAlreadyTakenException()
 
-        if user_to_update.email and user_to_update.email != current_user.username:
+        if user_to_update.email and user_to_update.email != current_user.email:
             if await self._user_repo.get_by_email(
                 session=session, email=user_to_update.email
             ):
