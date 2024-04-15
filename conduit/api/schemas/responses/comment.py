@@ -1,7 +1,8 @@
 import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
+from conduit.core.utils.date import convert_datetime_to_realworld
 from conduit.domain.dtos.comment import CommentDTO, CommentsListDTO
 
 
@@ -18,6 +19,10 @@ class CommentData(BaseModel):
     author: CommentAuthorData
     created_at: datetime.datetime = Field(alias="createdAt")
     updated_at: datetime.datetime = Field(alias="updatedAt")
+
+    model_config = ConfigDict(
+        json_encoders={datetime.datetime: convert_datetime_to_realworld}
+    )
 
 
 class CommentResponse(BaseModel):

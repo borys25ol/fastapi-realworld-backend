@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import dataclass
 
 from conduit.domain.dtos.profile import ProfileDTO
@@ -9,8 +10,8 @@ class CommentRecordDTO:
     body: str
     author_id: int
     article_id: int
-    created_at: str
-    updated_at: str
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
 
 
 @dataclass(frozen=True)
@@ -18,8 +19,8 @@ class CommentDTO:
     id: int
     body: str
     author: ProfileDTO
-    created_at: str
-    updated_at: str
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
 
 
 @dataclass(frozen=True)

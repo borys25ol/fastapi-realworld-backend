@@ -1,7 +1,8 @@
 import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
+from conduit.core.utils.date import convert_datetime_to_realworld
 from conduit.domain.dtos.article import ArticleDTO, ArticlesFeedDTO
 
 
@@ -23,6 +24,10 @@ class ArticleData(BaseModel):
     favorited: bool = False
     favorites_count: int = Field(default=0, alias="favoritesCount")
     author: ArticleAuthorData
+
+    model_config = ConfigDict(
+        json_encoders={datetime.datetime: convert_datetime_to_realworld}
+    )
 
 
 class ArticleResponse(BaseModel):
