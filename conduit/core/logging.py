@@ -3,7 +3,6 @@ import logging
 import structlog
 from structlog.typing import EventDict, Processor
 
-from conduit.api.middlewares import REQUEST_ID_VAR
 from conduit.core.config import get_app_settings
 
 __all__ = ["configure_logger"]
@@ -33,23 +32,10 @@ def drop_color_message_key(
     return event_dict
 
 
-def add_request_id_to_logs(
-    _: logging.Logger, __: str, event_dict: EventDict
-) -> EventDict:
-    """
-    Add request id to logs dictionary
-    """
-    request_id = REQUEST_ID_VAR.get()
-    if request_id:
-        event_dict["request_id"] = request_id
-    return event_dict
-
-
 def configure_logger(json_logs: bool = False) -> None:
     timestamper = structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S")
 
     shared_processors: list[Processor] = [
-        add_request_id_to_logs,
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,

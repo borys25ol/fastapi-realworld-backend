@@ -1,5 +1,3 @@
-import uuid
-from contextvars import ContextVar
 from datetime import datetime, timedelta
 from typing import Any, Unpack
 
@@ -9,21 +7,6 @@ from starlette.responses import Response
 
 from conduit.core.exceptions import RateLimitExceededException
 
-REQUEST_ID_VAR: ContextVar[str] = ContextVar("request_id", default="")
-
-
-class RequestIDMiddleware(BaseHTTPMiddleware):
-    """
-    Middleware that add request_id to context variable.
-    """
-
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
-        REQUEST_ID_VAR.set(uuid.uuid4().hex)
-        response = await call_next(request)
-        return response
-
 
 class RateLimitingMiddleware(BaseHTTPMiddleware):
     """
@@ -31,7 +14,7 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
     """
 
     rate_limit_duration = timedelta(minutes=1)
-    rate_limit_requests = 10
+    rate_limit_requests = 100
 
     def __init__(self, *args: Unpack[tuple[Any]], **kwargs: Any):
         super().__init__(*args, **kwargs)
