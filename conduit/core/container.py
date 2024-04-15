@@ -8,26 +8,31 @@ from conduit.core.settings.base import AppEnvTypes, BaseAppSettings
 from conduit.domain.mapper import IModelMapper
 from conduit.domain.repositories.article import IArticleRepository
 from conduit.domain.repositories.article_tag import IArticleTagRepository
+from conduit.domain.repositories.comment import ICommentRepository
 from conduit.domain.repositories.favorite import IFavoriteRepository
 from conduit.domain.repositories.follower import IFollowerRepository
 from conduit.domain.repositories.tag import ITagRepository
 from conduit.domain.repositories.user import IUserRepository
 from conduit.domain.services.article import IArticleService
 from conduit.domain.services.auth import IUserAuthService
+from conduit.domain.services.comment import ICommentService
 from conduit.domain.services.jwt import IJWTTokenService
 from conduit.domain.services.profile import IProfileService
 from conduit.domain.services.tag import ITagService
 from conduit.infrastructure.mappers.article import ArticleModelMapper
+from conduit.infrastructure.mappers.comment import CommentModelMapper
 from conduit.infrastructure.mappers.tag import TagModelMapper
 from conduit.infrastructure.mappers.user import UserModelMapper
 from conduit.infrastructure.repositories.article import ArticleRepository
 from conduit.infrastructure.repositories.article_tag import ArticleTagRepository
+from conduit.infrastructure.repositories.comment import CommentRepository
 from conduit.infrastructure.repositories.favorite import FavoriteRepository
 from conduit.infrastructure.repositories.follower import FollowerRepository
 from conduit.infrastructure.repositories.tag import TagRepository
 from conduit.infrastructure.repositories.user import UserRepository
 from conduit.services.article import ArticleService
 from conduit.services.auth import UserAuthService
+from conduit.services.comment import CommentService
 from conduit.services.jwt import JWTTokenService
 from conduit.services.profile import ProfileService
 from conduit.services.tag import TagService
@@ -81,6 +86,10 @@ class Container:
     def article_model_mapper() -> IModelMapper:
         return ArticleModelMapper()
 
+    @staticmethod
+    def comment_model_mapper() -> IModelMapper:
+        return CommentModelMapper()
+
     def user_repository(self) -> IUserRepository:
         return UserRepository(user_mapper=self.user_model_mapper())
 
@@ -96,6 +105,9 @@ class Container:
 
     def article_tag_repository(self) -> IArticleTagRepository:
         return ArticleTagRepository(tag_mapper=self.tag_model_mapper())
+
+    def comment_repository(self) -> ICommentRepository:
+        return CommentRepository(comment_mapper=self.comment_model_mapper())
 
     @staticmethod
     def favorite_repository() -> IFavoriteRepository:
@@ -126,6 +138,13 @@ class Container:
             article_repo=self.article_repository(),
             article_tag_repo=self.article_tag_repository(),
             favorite_repo=self.favorite_repository(),
+            profile_service=self.profile_service(),
+        )
+
+    def comment_service(self) -> ICommentService:
+        return CommentService(
+            article_repo=self.article_repository(),
+            comment_repo=self.comment_repository(),
             profile_service=self.profile_service(),
         )
 

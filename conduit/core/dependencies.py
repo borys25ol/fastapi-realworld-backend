@@ -13,6 +13,7 @@ from conduit.core.security import HTTPTokenHeader
 from conduit.domain.dtos.user import UserDTO
 from conduit.services.article import ArticleService
 from conduit.services.auth import UserAuthService
+from conduit.services.comment import CommentService
 from conduit.services.jwt import JWTTokenService
 from conduit.services.profile import ProfileService
 from conduit.services.tag import TagService
@@ -40,6 +41,7 @@ IUserAuthService = Annotated[UserAuthService, Depends(container.user_auth_servic
 IProfileService = Annotated[ProfileService, Depends(container.profile_service)]
 ITagService = Annotated[TagService, Depends(container.tag_service)]
 IArticleService = Annotated[ArticleService, Depends(container.article_service)]
+ICommentService = Annotated[CommentService, Depends(container.comment_service)]
 
 
 def get_articles_filters(

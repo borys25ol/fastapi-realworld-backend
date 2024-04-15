@@ -70,6 +70,20 @@ class ArticlePermissionException(BaseInternalException):
     _message = "Current user does not have permission to access the article."
 
 
+class CommentNotFoundException(BaseInternalException):
+    """Exception raised when comment not found in database."""
+
+    _status_code = 404
+    _message = "Comment with this id does not exist."
+
+
+class CommentPermissionException(BaseInternalException):
+    """Exception raised when user does not have permission to access the comment."""
+
+    _status_code = 403
+    _message = "Current user does not have permission to access the comment."
+
+
 class EmailAlreadyTakenException(BaseInternalException):
     """Exception raised when email was found in database while registration."""
 
