@@ -39,10 +39,10 @@ class UserRepository(IUserRepository):
         if user := await session.scalar(query):
             return self._user_mapper.to_dto(user)
 
-    async def get_by_id(self, session: AsyncSession, user_id: int) -> UserDTO:
+    async def get_by_id(self, session: AsyncSession, user_id: int) -> UserDTO | None:
         query = select(User).where(User.id == user_id)
-        user = await session.scalar(query)
-        return self._user_mapper.to_dto(user)
+        if user := await session.scalar(query):
+            return self._user_mapper.to_dto(user)
 
     async def get_all_by_ids(
         self, session: AsyncSession, ids: Collection[int]

@@ -31,9 +31,13 @@ class UserAuthService(IUserAuthService):
     async def get_current_user(self, session: AsyncSession, token: str) -> UserDTO:
         auth_token = AuthTokenDTO(token=token)
         jwt_user = self._jwt_service.get_user_info_from_token(auth_token=auth_token)
-        return await self._user_repo.get_by_id(
+        current_user = await self._user_repo.get_by_id(
             session=session, user_id=jwt_user.user_id
         )
+        if not current_user:
+            raise IncorrectLoginInputException()
+
+        return current_user
 
     async def sign_up_user(
         self, session: AsyncSession, user_to_create: CreateUserDTO
