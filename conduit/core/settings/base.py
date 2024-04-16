@@ -45,3 +45,8 @@ class BaseAppSettings(BaseSettings):
             port=self.postgres_port,
             database=self.postgres_db,
         )
+
+    @computed_field  # type: ignore
+    @property
+    def sqlalchemy_engine_props(self) -> dict:
+        return dict(url=self.sql_db_uri)

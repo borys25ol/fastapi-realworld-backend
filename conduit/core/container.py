@@ -1,6 +1,7 @@
 import contextlib
 from collections.abc import AsyncIterator
 
+from sqlalchemy import NullPool
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from conduit.core.config import get_app_settings
@@ -43,13 +44,8 @@ class Container:
 
     def __init__(self, settings: BaseAppSettings) -> None:
         self._settings = settings
-        self._engine = create_async_engine(
-            url=settings.sql_db_uri,
-            echo=self._settings.app_env != AppEnvTypes.production,
-        )
-        self._session = async_sessionmaker(
-            bind=self._engine, autocommit=False, expire_on_commit=False
-        )
+        self._engine = create_async_engine(**settings.sqlalchemy_engine_props)
+        self._session = async_sessionmaker(bind=self._engine, expire_on_commit=False)
 
     @contextlib.asynccontextmanager
     async def context_session(self) -> AsyncIterator[AsyncSession]:
