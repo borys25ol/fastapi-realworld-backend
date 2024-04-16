@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import insert, select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from conduit.core.security import get_password_hash
 from conduit.domain.dtos.user import CreateUserDTO, UpdateUserDTO, UserDTO
 from conduit.domain.mapper import IModelMapper
 from conduit.domain.repositories.user import IUserRepository
@@ -24,7 +25,7 @@ class UserRepository(IUserRepository):
             .values(
                 username=create_item.username,
                 email=create_item.email,
-                password_hash=create_item.password,
+                password_hash=get_password_hash(create_item.password),
                 image_url="https://api.realworld.io/images/smiley-cyrus.jpeg",
                 bio="",
                 created_at=datetime.now(),
@@ -72,7 +73,7 @@ class UserRepository(IUserRepository):
         if update_item.email is not None:
             query = query.values(email=update_item.email)
         if update_item.password is not None:
-            query = query.values(password_hash=update_item.password)
+            query = query.values(password_hash=get_password_hash(update_item.password))
         if update_item.bio is not None:
             query = query.values(bio=update_item.bio)
         if update_item.image_url is not None:

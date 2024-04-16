@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field
 
-from conduit.core.security import get_password_hash
 from conduit.domain.dtos.user import CreateUserDTO, LoginUserDTO, UpdateUserDTO
 
 
@@ -30,7 +29,7 @@ class UserRegistrationRequest(BaseModel):
         return CreateUserDTO(
             username=self.user.username,
             email=self.user.email,
-            password=get_password_hash(self.user.password),
+            password=self.user.password,
         )
 
 
