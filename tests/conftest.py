@@ -1,14 +1,15 @@
 import contextlib
 import os
+from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import AsyncIterator
+from typing import TypeAlias
 
 import pytest
-import pytest_asyncio
+from fastapi import FastAPI
 from httpx import AsyncClient
-from sqlalchemy import URL, text, create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.exc import ProgrammingError
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.app import create_app
 from conduit.core.config import get_app_settings
@@ -21,7 +22,14 @@ from conduit.domain.dtos.user import CreateUserDTO, UserDTO
 from conduit.domain.repositories.user import IUserRepository
 from conduit.infrastructure.models import Base
 
+SetupFixture: TypeAlias = None
+
 CREATE_TEST_DB_QUERY = "CREATE DATABASE {db_name}"
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    return "asyncio"
 
 
 @pytest.fixture(autouse=True)
@@ -29,48 +37,14 @@ def check_app_env_mode_enabled():
     assert os.getenv("APP_ENV") == "test"
 
 
+@pytest.fixture
+def application() -> FastAPI:
+    return create_app()
+
+
 @pytest.fixture(scope="session")
 def settings() -> BaseAppSettings:
     return get_app_settings()
-
-
-@pytest.fixture(scope="session")
-def create_test_db(settings: BaseAppSettings) -> None:
-    url = URL.create(
-        drivername="postgresql",
-        username=settings.postgres_user,
-        password=settings.postgres_password,
-        host=settings.postgres_host,
-        port=settings.postgres_port,
-        database="postgres",
-    )
-    engine = create_engine(url=url, isolation_level="AUTOCOMMIT")
-    with engine.connect() as connection:
-        with contextlib.suppress(ProgrammingError):
-            query = text(CREATE_TEST_DB_QUERY.format(db_name=settings.postgres_db))
-            connection.execute(statement=query)
-
-
-@pytest_asyncio.fixture(scope="session", autouse=True)
-async def create_tables(settings: BaseAppSettings, create_test_db) -> None:
-    async_engine = create_async_engine(
-        url=settings.sql_db_uri, isolation_level="AUTOCOMMIT"
-    )
-    async with async_engine.connect() as connection:
-        await connection.run_sync(Base.metadata.create_all)
-        yield
-        await connection.run_sync(Base.metadata.drop_all)
-
-
-@pytest_asyncio.fixture
-async def test_client() -> AsyncClient:
-    app = create_app()
-    async with AsyncClient(
-        app=app,
-        base_url="http://testserver",
-        headers={"Content-Type": "application/json"},
-    ) as client:
-        yield client
 
 
 @pytest.fixture
@@ -78,7 +52,47 @@ def di_container(settings: BaseAppSettings) -> Container:
     return Container(settings=settings)
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
+def user_repository(di_container: Container) -> IUserRepository:
+    return di_container.user_repository()
+
+
+@pytest.fixture
+def article_service(di_container: Container) -> IArticleService:
+    return di_container.article_service()
+
+
+@pytest.fixture
+def jwt_service(di_container: Container) -> IJWTTokenService:
+    return di_container.jwt_service()
+
+
+@pytest.fixture(scope="session")
+def create_test_db(settings: BaseAppSettings) -> None:
+    engine = create_engine(
+        url=settings.sql_db_uri.set(drivername="postgresql", database="postgres"),
+        isolation_level="AUTOCOMMIT",
+    )
+    with engine.connect() as connection:
+        with contextlib.suppress(ProgrammingError):
+            query = text(CREATE_TEST_DB_QUERY.format(db_name=settings.postgres_db))
+            connection.execute(statement=query)
+    engine.dispose()
+
+
+@pytest.fixture(autouse=True, scope="session")
+def create_tables(settings: BaseAppSettings, create_test_db: SetupFixture) -> None:
+    engine = create_engine(
+        url=settings.sql_db_uri.set(drivername="postgresql"),
+        isolation_level="AUTOCOMMIT",
+    )
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
+    engine.dispose()
+
+
+@pytest.fixture
 async def session(di_container: Container) -> AsyncIterator[AsyncSession]:
     async with di_container.context_session() as session:
         yield session
@@ -114,30 +128,19 @@ def not_exists_user() -> UserDTO:
 
 
 @pytest.fixture
-def user_repository(di_container: Container) -> IUserRepository:
-    return di_container.user_repository()
-
-
-@pytest.fixture
-def article_service(di_container: Container) -> IArticleService:
-    return di_container.article_service()
-
-
-@pytest.fixture
-def jwt_service(di_container: Container) -> IJWTTokenService:
-    return di_container.jwt_service()
-
-
-@pytest_asyncio.fixture
 async def test_user(
     session: AsyncSession,
     user_repository: IUserRepository,
     user_to_create: CreateUserDTO,
 ) -> UserDTO:
+    if user := await user_repository.get_by_username(
+        session=session, username=user_to_create.username
+    ):
+        return user
     return await user_repository.create(session=session, create_item=user_to_create)
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def test_article(
     session: AsyncSession,
     article_service: IArticleService,
@@ -149,12 +152,12 @@ async def test_article(
     )
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def token_dto(jwt_service: IJWTTokenService, test_user: UserDTO) -> AuthTokenDTO:
     return jwt_service.generate_token(user=test_user)
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def not_exists_token_dto(
     jwt_service: IJWTTokenService, not_exists_user: UserDTO
 ) -> AuthTokenDTO:
@@ -162,11 +165,25 @@ async def not_exists_token_dto(
 
 
 @pytest.fixture
-def authorized_test_client(
-    test_client: AsyncClient, token_dto: AuthTokenDTO
+async def test_client(application: FastAPI) -> AsyncClient:
+    async with AsyncClient(
+        app=application,
+        base_url="http://testserver/api",
+        headers={"Content-Type": "application/json"},
+    ) as client:
+        yield client
+
+
+@pytest.fixture
+async def authorized_test_client(
+    application: FastAPI, token_dto: AuthTokenDTO
 ) -> AsyncClient:
-    test_client.headers = {
-        "Authorization": f"Token {token_dto.token}",
-        **test_client.headers,
-    }
-    return test_client
+    async with AsyncClient(
+        app=application,
+        base_url="http://testserver/api",
+        headers={
+            "Authorization": f"Token {token_dto.token}",
+            "Content-Type": "application/json",
+        },
+    ) as client:
+        yield client
