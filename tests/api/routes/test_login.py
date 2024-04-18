@@ -21,7 +21,7 @@ async def test_user_successful_login(
     ),
 )
 @pytest.mark.anyio
-async def test_user_login_with_credentials_invalid_part(
+async def test_user_login_with_invalid_credentials_part(
     test_client: AsyncClient, credentials: dict
 ) -> None:
     payload = {"user": credentials}

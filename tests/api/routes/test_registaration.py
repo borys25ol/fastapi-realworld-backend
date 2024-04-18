@@ -3,6 +3,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.core.security import verify_password
+from conduit.domain.dtos.user import UserDTO
 from conduit.infrastructure.repositories.user import UserRepository
 
 
@@ -26,14 +27,10 @@ async def test_user_success_registration(
 )
 @pytest.mark.anyio
 async def test_user_registration_with_taken_credentials(
-    test_client: AsyncClient, field: str, value: str
+    test_client: AsyncClient, test_user: UserDTO, field: str, value: str
 ) -> None:
     payload = {
-        "user": {
-            "email": "success@gmail.com",
-            "username": "success",
-            "password": "password",
-        }
+        "user": {"email": "test@gmail.com", "username": "test", "password": "password"}
     }
     payload["user"][field] = value
     response = await test_client.post("/users", json=payload)
