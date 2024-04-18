@@ -1,15 +1,13 @@
-import contextlib
 import os
-from collections.abc import AsyncIterator
 from datetime import datetime
 from typing import TypeAlias
 
 import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
-from sqlalchemy import create_engine, text
-from sqlalchemy.exc import ProgrammingError
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy_utils import create_database, database_exists, drop_database
 
 from conduit.app import create_app
 from conduit.core.config import get_app_settings
@@ -24,8 +22,6 @@ from conduit.infrastructure.models import Base
 
 SetupFixture: TypeAlias = None
 
-CREATE_TEST_DB_QUERY = "CREATE DATABASE {db_name}"
-
 
 @pytest.fixture
 def anyio_backend() -> str:
@@ -37,8 +33,33 @@ def check_app_env_mode_enabled():
     assert os.getenv("APP_ENV") == "test"
 
 
-@pytest.fixture
-def application() -> FastAPI:
+@pytest.fixture(scope="session")
+def create_test_db(settings: BaseAppSettings) -> None:
+    test_db_sql_uri = settings.sql_db_uri.set(drivername="postgresql")
+
+    if database_exists(url=test_db_sql_uri):
+        drop_database(url=test_db_sql_uri)
+
+    create_database(url=test_db_sql_uri)
+    yield
+
+    drop_database(url=test_db_sql_uri)
+
+
+@pytest.fixture(autouse=True)
+def create_tables(settings: BaseAppSettings) -> None:
+    engine = create_engine(
+        url=settings.sql_db_uri.set(drivername="postgresql"),
+        isolation_level="AUTOCOMMIT",
+    )
+    Base.metadata.create_all(bind=engine)
+    yield
+
+    Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(scope="session")
+def application(create_test_db: SetupFixture) -> FastAPI:
     return create_app()
 
 
@@ -47,9 +68,15 @@ def settings() -> BaseAppSettings:
     return get_app_settings()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def di_container(settings: BaseAppSettings) -> Container:
     return Container(settings=settings)
+
+
+@pytest.fixture
+async def session(di_container: Container) -> AsyncSession:
+    async with di_container.context_session() as session:
+        yield session
 
 
 @pytest.fixture
@@ -65,37 +92,6 @@ def article_service(di_container: Container) -> IArticleService:
 @pytest.fixture
 def jwt_service(di_container: Container) -> IJWTTokenService:
     return di_container.jwt_service()
-
-
-@pytest.fixture(scope="session")
-def create_test_db(settings: BaseAppSettings) -> None:
-    engine = create_engine(
-        url=settings.sql_db_uri.set(drivername="postgresql", database="postgres"),
-        isolation_level="AUTOCOMMIT",
-    )
-    with engine.connect() as connection:
-        with contextlib.suppress(ProgrammingError):
-            query = text(CREATE_TEST_DB_QUERY.format(db_name=settings.postgres_db))
-            connection.execute(statement=query)
-    engine.dispose()
-
-
-@pytest.fixture(autouse=True, scope="session")
-def create_tables(settings: BaseAppSettings, create_test_db: SetupFixture) -> None:
-    engine = create_engine(
-        url=settings.sql_db_uri.set(drivername="postgresql"),
-        isolation_level="AUTOCOMMIT",
-    )
-    Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
-    engine.dispose()
-
-
-@pytest.fixture
-async def session(di_container: Container) -> AsyncIterator[AsyncSession]:
-    async with di_container.context_session() as session:
-        yield session
 
 
 @pytest.fixture
@@ -133,10 +129,6 @@ async def test_user(
     user_repository: IUserRepository,
     user_to_create: CreateUserDTO,
 ) -> UserDTO:
-    if user := await user_repository.get_by_username(
-        session=session, username=user_to_create.username
-    ):
-        return user
     return await user_repository.create(session=session, create_item=user_to_create)
 
 
