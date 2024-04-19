@@ -122,8 +122,22 @@ class ProfileNotFoundException(BaseInternalException):
 class OwnProfileFollowingException(BaseInternalException):
     """Exception raised when user is trying to follow own profile."""
 
-    _status_code = 404
+    _status_code = 403
     _message = "Own profile cannot be followed or unfollowed."
+
+
+class ProfileAlreadyFollowedException(BaseInternalException):
+    """Exception raised when user is trying to follow already followed profile."""
+
+    _status_code = 400
+    _message = "Profile already followed."
+
+
+class ProfileNotFollowedFollowedException(BaseInternalException):
+    """Exception raised when user is trying to unfollow not followed profile."""
+
+    _status_code = 400
+    _message = "Profile was not followed."
 
 
 class RateLimitExceededException(BaseInternalException):

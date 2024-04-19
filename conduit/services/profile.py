@@ -2,6 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.core.exceptions import (
     OwnProfileFollowingException,
+    ProfileAlreadyFollowedException,
+    ProfileNotFollowedFollowedException,
     ProfileNotFoundException,
 )
 from conduit.domain.dtos.profile import ProfileDTO
@@ -100,6 +102,11 @@ class ProfileService(IProfileService):
         if not target_user:
             raise ProfileNotFoundException()
 
+        if await self._follower_repo.exists(
+            session, follower_id=current_user.id, following_id=target_user.id
+        ):
+            raise ProfileAlreadyFollowedException()
+
         await self._follower_repo.create(
             session=session, follower_id=current_user.id, following_id=target_user.id
         )
@@ -115,6 +122,11 @@ class ProfileService(IProfileService):
         )
         if not target_user:
             raise ProfileNotFoundException()
+
+        if not await self._follower_repo.exists(
+            session, follower_id=current_user.id, following_id=target_user.id
+        ):
+            raise ProfileNotFollowedFollowedException()
 
         await self._follower_repo.delete(
             session=session, follower_id=current_user.id, following_id=target_user.id
