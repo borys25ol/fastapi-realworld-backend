@@ -7,7 +7,6 @@ class CommentModelMapper(IModelMapper[Comment, CommentRecordDTO]):
 
     @staticmethod
     def to_dto(model: Comment) -> CommentRecordDTO:
-        print(model.id)
         dto = CommentRecordDTO(
             id=model.id,
             body=model.body,
