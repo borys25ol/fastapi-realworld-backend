@@ -20,6 +20,7 @@ from conduit.domain.services.comment import ICommentService
 from conduit.domain.services.jwt import IJWTTokenService
 from conduit.domain.services.profile import IProfileService
 from conduit.domain.services.tag import ITagService
+from conduit.domain.services.user import IUserService
 from conduit.infrastructure.mappers.article import ArticleModelMapper
 from conduit.infrastructure.mappers.comment import CommentModelMapper
 from conduit.infrastructure.mappers.tag import TagModelMapper
@@ -37,6 +38,7 @@ from conduit.services.comment import CommentService
 from conduit.services.jwt import JWTTokenService
 from conduit.services.profile import ProfileService
 from conduit.services.tag import TagService
+from conduit.services.user import UserService
 
 
 class Container:
@@ -118,6 +120,11 @@ class Container:
 
     def user_auth_service(self) -> IUserAuthService:
         return UserAuthService(
+            user_repo=self.user_repository(), jwt_service=self.jwt_service()
+        )
+
+    def user_service(self) -> IUserService:
+        return UserService(
             user_repo=self.user_repository(), jwt_service=self.jwt_service()
         )
 

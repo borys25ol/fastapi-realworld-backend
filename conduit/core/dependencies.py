@@ -17,6 +17,7 @@ from conduit.services.comment import CommentService
 from conduit.services.jwt import JWTTokenService
 from conduit.services.profile import ProfileService
 from conduit.services.tag import TagService
+from conduit.services.user import UserService
 
 token_security = HTTPTokenHeader(
     name="Authorization",
@@ -38,6 +39,7 @@ DBSession = Annotated[AsyncSession, Depends(container.session)]
 
 IJWTTokenService = Annotated[JWTTokenService, Depends(container.jwt_service)]
 IUserAuthService = Annotated[UserAuthService, Depends(container.user_auth_service)]
+IUserService = Annotated[UserService, Depends(container.user_service)]
 IProfileService = Annotated[ProfileService, Depends(container.profile_service)]
 ITagService = Annotated[TagService, Depends(container.tag_service)]
 IArticleService = Annotated[ArticleService, Depends(container.article_service)]
@@ -57,21 +59,19 @@ def get_articles_filters(
 
 
 async def get_current_user_or_none(
-    token: JWTTokenOptional, session: DBSession, user_auth_service: IUserAuthService
+    token: JWTTokenOptional, session: DBSession, user_service: IUserService
 ) -> UserDTO | None:
     if token:
-        current_user_dto = await user_auth_service.get_current_user(
+        current_user_dto = await user_service.get_current_user(
             session=session, token=token
         )
         return current_user_dto
 
 
 async def get_current_user(
-    token: JWTToken, session: DBSession, user_auth_service: IUserAuthService
+    token: JWTToken, session: DBSession, user_service: IUserService
 ) -> UserDTO:
-    current_user_dto = await user_auth_service.get_current_user(
-        session=session, token=token
-    )
+    current_user_dto = await user_service.get_current_user(session=session, token=token)
     return current_user_dto
 
 

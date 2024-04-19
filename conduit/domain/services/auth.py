@@ -6,16 +6,10 @@ from conduit.domain.dtos.user import (
     CreateUserDTO,
     LoggedInUserDTO,
     LoginUserDTO,
-    UpdatedUserDTO,
-    UpdateUserDTO,
-    UserDTO,
 )
 
 
 class IUserAuthService(abc.ABC):
-
-    @abc.abstractmethod
-    async def get_current_user(self, session: Any, token: str) -> UserDTO: ...
 
     @abc.abstractmethod
     async def sign_up_user(
@@ -26,8 +20,3 @@ class IUserAuthService(abc.ABC):
     async def sign_in_user(
         self, session: Any, user_to_login: LoginUserDTO
     ) -> LoggedInUserDTO: ...
-
-    @abc.abstractmethod
-    async def update_user(
-        self, session: Any, current_user: UserDTO, user_to_update: UpdateUserDTO
-    ) -> UpdatedUserDTO: ...
