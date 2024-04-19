@@ -48,9 +48,10 @@ class ArticleService(IArticleService):
         profile = await self._profile_service.get_profile_by_user_id(
             session=session, user_id=author_id
         )
-        await self._article_tag_repo.create_many(
-            session=session, article_id=article.id, tags=article_to_create.tags
-        )
+        if article_to_create.tags:
+            await self._article_tag_repo.create_many(
+                session=session, article_id=article.id, tags=article_to_create.tags
+            )
         return ArticleDTO(
             **asdict(article),
             author=profile,
