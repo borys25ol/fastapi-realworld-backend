@@ -17,6 +17,7 @@ from conduit.core.settings.base import BaseAppSettings
 from conduit.domain.dtos.article import ArticleDTO, CreateArticleDTO
 from conduit.domain.dtos.jwt import AuthTokenDTO
 from conduit.domain.dtos.user import CreateUserDTO, UserDTO
+from conduit.domain.repositories.article import IArticleRepository
 from conduit.domain.repositories.user import IUserRepository
 from conduit.infrastructure.models import Base
 
@@ -82,6 +83,11 @@ async def session(di_container: Container) -> AsyncSession:
 @pytest.fixture
 def user_repository(di_container: Container) -> IUserRepository:
     return di_container.user_repository()
+
+
+@pytest.fixture
+def article_repository(di_container: Container) -> IArticleRepository:
+    return di_container.article_repository()
 
 
 @pytest.fixture

@@ -3,17 +3,9 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.api.schemas.responses.profile import ProfileResponse
-from conduit.domain.dtos.user import CreateUserDTO, UserDTO
+from conduit.domain.dtos.user import UserDTO
 from conduit.infrastructure.repositories.user import UserRepository
-
-
-async def create_another_test_user(
-    user_repository: UserRepository, session: AsyncSession
-) -> UserDTO:
-    create_user_dto = CreateUserDTO(
-        username="temp-user", email="temp-user@gmail.com", password="password"
-    )
-    return await user_repository.create(session=session, create_item=create_user_dto)
+from tests.utils import create_another_test_user
 
 
 @pytest.mark.anyio
@@ -158,7 +150,7 @@ async def test_authenticated_user_can_unfollow_already_unfollowed_profile(
 
 
 @pytest.mark.parametrize(
-    "api_method, route_name",
+    "api_method, api_path",
     (
         ("GET", "/profiles/{username}"),
         ("POST", "/profiles/{username}/follow"),
@@ -167,9 +159,9 @@ async def test_authenticated_user_can_unfollow_already_unfollowed_profile(
 )
 @pytest.mark.anyio
 async def test_user_can_not_retrieve_not_existing_profile(
-    authorized_test_client: AsyncClient, api_method: str, route_name: str
+    authorized_test_client: AsyncClient, api_method: str, api_path: str
 ) -> None:
     response = await authorized_test_client.request(
-        method=api_method, url=route_name.format(username="not-existing-username")
+        method=api_method, url=api_path.format(username="not-existing-username")
     )
     assert response.status_code == 404
