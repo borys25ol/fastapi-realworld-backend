@@ -6,6 +6,9 @@ ve:
 docker_build:
 	docker-compose up -d --build
 
+docker_build_postgres:
+	docker-compose up -d postgres --build
+
 docker_up:
 	docker-compose up -d
 

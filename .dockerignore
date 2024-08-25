@@ -7,3 +7,10 @@ __pycache__
 *.pyo
 logs
 .coverage
+.env.example
+.pre-commit-config.yaml
+.python-version
+docker-compose.yaml
+Dockerfile
+pyproject.toml
+setup.cfg
