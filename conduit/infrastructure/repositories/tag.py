@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.domain.dtos.tag import TagDTO
 from conduit.domain.mapper import IModelMapper

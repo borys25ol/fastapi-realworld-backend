@@ -1,6 +1,6 @@
 import abc
 
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.domain.dtos.tag import TagDTO
 
