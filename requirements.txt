@@ -12,7 +12,7 @@ pytest-asyncio==0.23.6
 pytest-cov==5.0.0
 python-slugify==8.0.4
 SQLAlchemy==2.0.29
-sqlalchemy_utils==0.41.2
+SQLAlchemy-Utils==0.41.2
 sqlmodel==0.0.16
 starlette==0.37.2
 structlog==24.1.0
