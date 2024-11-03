@@ -86,6 +86,10 @@ def _configure_default_logging_by_custom(
     # Use structlog `ProcessorFormatter` to format all `logging` entries.
     handler.setFormatter(formatter)
 
+    # Disable the `passlib` logger.
+    logging.getLogger("passlib").setLevel(logging.ERROR)
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
+
     # Set logging level.
     root_logger = logging.getLogger()
     root_logger.addHandler(handler)
