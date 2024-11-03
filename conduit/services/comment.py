@@ -5,6 +5,7 @@ from conduit.core.exceptions import (
     CommentNotFoundException,
     CommentPermissionException,
 )
+from conduit.core.utils.errors import get_or_raise
 from conduit.domain.dtos.comment import (
     CommentDTO,
     CommentRecordDTO,
@@ -38,12 +39,16 @@ class CommentService(ICommentService):
         comment_to_create: CreateCommentDTO,
         current_user: UserDTO,
     ) -> CommentDTO:
-        article = await self._article_repo.get_by_slug(session=session, slug=slug)
-        if not article:
-            raise ArticleNotFoundException()
-
-        profile = await self._profile_service.get_profile_by_user_id(
-            session=session, user_id=current_user.id, current_user=current_user
+        article = await get_or_raise(
+            awaitable=self._article_repo.get_by_slug(session=session, slug=slug),
+            exception=ArticleNotFoundException(),
+        )
+        profile = ProfileDTO(
+            user_id=current_user.id,
+            username=current_user.username,
+            bio=current_user.bio,
+            image=current_user.image_url,
+            following=False,
         )
         comment_record_dto = await self._comment_repo.create(
             session=session,
@@ -62,10 +67,10 @@ class CommentService(ICommentService):
     async def get_article_comments(
         self, session: AsyncSession, slug: str, current_user: UserDTO | None = None
     ) -> CommentsListDTO:
-        article = await self._article_repo.get_by_slug(session=session, slug=slug)
-        if not article:
-            raise ArticleNotFoundException()
-
+        article = await get_or_raise(
+            awaitable=self._article_repo.get_by_slug(session=session, slug=slug),
+            exception=ArticleNotFoundException(),
+        )
         comment_records = await self._comment_repo.get_all_by_article_id(
             session=session, article_id=article.id
         )
@@ -90,16 +95,16 @@ class CommentService(ICommentService):
     async def delete_article_comment(
         self, session: AsyncSession, slug: str, comment_id: int, current_user: UserDTO
     ) -> None:
-        article = await self._article_repo.get_by_slug(session=session, slug=slug)
-        if not article:
-            raise ArticleNotFoundException()
-
-        comment = await self._comment_repo.get_by_id(
-            session=session, comment_id=comment_id
+        await get_or_raise(
+            awaitable=self._article_repo.get_by_slug(session=session, slug=slug),
+            exception=ArticleNotFoundException(),
         )
-        if not comment:
-            raise CommentNotFoundException()
-
+        comment = await get_or_raise(
+            awaitable=self._comment_repo.get_by_id(
+                session=session, comment_id=comment_id
+            ),
+            exception=CommentNotFoundException(),
+        )
         if comment.author_id != current_user.id:
             raise CommentPermissionException()
 

@@ -6,6 +6,7 @@ from conduit.core.exceptions import (
     ProfileNotFollowedFollowedException,
     ProfileNotFoundException,
 )
+from conduit.core.utils.errors import get_or_raise
 from conduit.domain.dtos.profile import ProfileDTO
 from conduit.domain.dtos.user import UserDTO
 from conduit.domain.repositories.follower import IFollowerRepository
@@ -46,10 +47,10 @@ class ProfileService(IProfileService):
     async def get_profile_by_user_id(
         self, session: AsyncSession, user_id: int, current_user: UserDTO | None = None
     ) -> ProfileDTO:
-        target_user = await self._user_repo.get_by_id(session=session, user_id=user_id)
-        if not target_user:
-            raise ProfileNotFoundException()
-
+        target_user = await get_or_raise(
+            awaitable=self._user_repo.get_by_id(session=session, user_id=user_id),
+            exception=ProfileNotFoundException(),
+        )
         profile = ProfileDTO(
             user_id=target_user.id,
             username=target_user.username,
@@ -96,12 +97,12 @@ class ProfileService(IProfileService):
         if username == current_user.username:
             raise OwnProfileFollowingException()
 
-        target_user = await self._user_repo.get_by_username(
-            session=session, username=username
+        target_user = await get_or_raise(
+            awaitable=self._user_repo.get_by_username(
+                session=session, username=username
+            ),
+            exception=ProfileNotFoundException(),
         )
-        if not target_user:
-            raise ProfileNotFoundException()
-
         if await self._follower_repo.exists(
             session, follower_id=current_user.id, following_id=target_user.id
         ):
@@ -117,12 +118,12 @@ class ProfileService(IProfileService):
         if username == current_user.username:
             raise OwnProfileFollowingException()
 
-        target_user = await self._user_repo.get_by_username(
-            session=session, username=username
+        target_user = await get_or_raise(
+            awaitable=self._user_repo.get_by_username(
+                session=session, username=username
+            ),
+            exception=ProfileNotFoundException(),
         )
-        if not target_user:
-            raise ProfileNotFoundException()
-
         if not await self._follower_repo.exists(
             session, follower_id=current_user.id, following_id=target_user.id
         ):

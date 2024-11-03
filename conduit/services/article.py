@@ -8,6 +8,7 @@ from conduit.core.exceptions import (
     ArticleNotFoundException,
     ArticlePermissionException,
 )
+from conduit.core.utils.errors import get_or_raise
 from conduit.domain.dtos.article import (
     ArticleDTO,
     ArticleRecordDTO,
@@ -63,10 +64,10 @@ class ArticleService(IArticleService):
     async def get_article_by_slug(
         self, session: AsyncSession, slug: str, current_user: UserDTO | None
     ) -> ArticleDTO:
-        article = await self._article_repo.get_by_slug(session=session, slug=slug)
-        if not article:
-            raise ArticleNotFoundException()
-
+        article = await get_or_raise(
+            awaitable=self._article_repo.get_by_slug(session=session, slug=slug),
+            exception=ArticleNotFoundException(),
+        )
         profile = await self._profile_service.get_profile_by_user_id(
             session=session, user_id=article.author_id, current_user=current_user
         )
@@ -80,10 +81,10 @@ class ArticleService(IArticleService):
     async def delete_article_by_slug(
         self, session: AsyncSession, slug: str, current_user: UserDTO
     ) -> None:
-        article = await self._article_repo.get_by_slug(session=session, slug=slug)
-        if not article:
-            raise ArticleNotFoundException()
-
+        article = await get_or_raise(
+            awaitable=self._article_repo.get_by_slug(session=session, slug=slug),
+            exception=ArticleNotFoundException(),
+        )
         if article.author_id != current_user.id:
             raise ArticlePermissionException()
 
@@ -96,10 +97,10 @@ class ArticleService(IArticleService):
         article_to_update: UpdateArticleDTO,
         current_user: UserDTO,
     ) -> ArticleDTO:
-        article = await self._article_repo.get_by_slug(session=session, slug=slug)
-        if not article:
-            raise ArticleNotFoundException()
-
+        article = await get_or_raise(
+            awaitable=self._article_repo.get_by_slug(session=session, slug=slug),
+            exception=ArticleNotFoundException(),
+        )
         if article.author_id != current_user.id:
             raise ArticlePermissionException()
 

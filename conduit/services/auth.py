@@ -6,6 +6,7 @@ from conduit.core.exceptions import (
     UserNameAlreadyTakenException,
 )
 from conduit.core.security import verify_password
+from conduit.core.utils.errors import get_or_raise
 from conduit.domain.dtos.user import (
     CreatedUserDTO,
     CreateUserDTO,
@@ -51,12 +52,12 @@ class UserAuthService(IUserAuthService):
     async def sign_in_user(
         self, session: AsyncSession, user_to_login: LoginUserDTO
     ) -> LoggedInUserDTO:
-        user = await self._user_repo.get_by_email(
-            session=session, email=user_to_login.email
+        user = await get_or_raise(
+            awaitable=self._user_repo.get_by_email(
+                session=session, email=user_to_login.email
+            ),
+            exception=IncorrectLoginInputException(),
         )
-        if not user:
-            raise IncorrectLoginInputException()
-
         if not verify_password(
             plain_password=user_to_login.password, hashed_password=user.password_hash
         ):
