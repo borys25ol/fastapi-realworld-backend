@@ -4,7 +4,11 @@ from sqlalchemy import delete, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.functions import count
 
-from conduit.core.utils.slug import get_slug_from_title
+from conduit.core.utils.slug import (
+    get_slug_unique_part,
+    make_slug_from_title,
+    make_slug_from_title_and_code,
+)
 from conduit.domain.dtos.article import (
     ArticleRecordDTO,
     CreateArticleDTO,
@@ -34,7 +38,7 @@ class ArticleRepository(IArticleRepository):
             insert(Article)
             .values(
                 author_id=author_id,
-                slug=get_slug_from_title(title=create_item.title),
+                slug=make_slug_from_title(title=create_item.title),
                 title=create_item.title,
                 description=create_item.description,
                 body=create_item.body,
@@ -49,7 +53,10 @@ class ArticleRepository(IArticleRepository):
     async def get_by_slug(
         self, session: AsyncSession, slug: str
     ) -> ArticleRecordDTO | None:
-        query = select(Article).where(Article.slug == slug)
+        slug_unique_part = get_slug_unique_part(slug=slug)
+        query = select(Article).where(
+            Article.slug == slug or Article.slug.contains(slug_unique_part)
+        )
         if article := await session.scalar(query):
             return self._article_mapper.to_dto(article)
 
@@ -67,10 +74,10 @@ class ArticleRepository(IArticleRepository):
             .returning(Article)
         )
         if update_item.title is not None:
-            query = query.values(
-                title=update_item.title,
-                slug=get_slug_from_title(title=update_item.title),
+            updated_slug = make_slug_from_title_and_code(
+                title=update_item.title, code=get_slug_unique_part(slug=slug)
             )
+            query = query.values(title=update_item.title, slug=updated_slug)
         if update_item.description is not None:
             query = query.values(description=update_item.description)
         if update_item.body is not None:
