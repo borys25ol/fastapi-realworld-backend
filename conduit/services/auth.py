@@ -1,8 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.core.exceptions import IncorrectLoginInputException
-from conduit.core.security import verify_password
-from conduit.core.utils.errors import get_or_raise
 from conduit.domain.dtos.user import (
     CreatedUserDTO,
     CreateUserDTO,
@@ -12,6 +10,7 @@ from conduit.domain.dtos.user import (
 from conduit.domain.services.auth import IUserAuthService
 from conduit.domain.services.auth_token import IAuthTokenService
 from conduit.domain.services.user import IUserService
+from conduit.services.password import verify_password
 
 
 class UserAuthService(IUserAuthService):

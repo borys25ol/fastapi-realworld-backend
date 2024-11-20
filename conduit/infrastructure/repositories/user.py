@@ -1,14 +1,14 @@
-from collections.abc import Collection, Mapping
+from collections.abc import Collection
 from datetime import datetime
 
 from sqlalchemy import insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from conduit.core.security import get_password_hash
 from conduit.domain.dtos.user import CreateUserDTO, UpdateUserDTO, UserDTO
 from conduit.domain.mapper import IModelMapper
 from conduit.domain.repositories.user import IUserRepository
 from conduit.infrastructure.models import User
+from conduit.services.password import get_password_hash
 
 
 class UserRepository(IUserRepository):
