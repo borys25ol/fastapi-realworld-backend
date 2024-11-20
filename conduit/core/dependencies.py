@@ -59,19 +59,29 @@ def get_articles_filters(
 
 
 async def get_current_user_or_none(
-    token: JWTTokenOptional, session: DBSession, user_service: IUserService
+    token: JWTTokenOptional,
+    session: DBSession,
+    auth_token_service: IAuthTokenService,
+    user_service: IUserService,
 ) -> UserDTO | None:
     if token:
-        current_user_dto = await user_service.get_current_user(
-            session=session, token=token
+        jwt_user = auth_token_service.parse_jwt_token(token=token)
+        current_user_dto = await user_service.get_user_by_id(
+            session=session, user_id=jwt_user.user_id
         )
         return current_user_dto
 
 
 async def get_current_user(
-    token: JWTToken, session: DBSession, user_service: IUserService
+    token: JWTToken,
+    session: DBSession,
+    auth_token_service: IAuthTokenService,
+    user_service: IUserService,
 ) -> UserDTO:
-    current_user_dto = await user_service.get_current_user(session=session, token=token)
+    jwt_user = auth_token_service.parse_jwt_token(token=token)
+    current_user_dto = await user_service.get_user_by_id(
+        session=session, user_id=jwt_user.user_id
+    )
     return current_user_dto
 
 

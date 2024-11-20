@@ -33,8 +33,12 @@ class LoggedInUserDTO:
 
 
 @dataclass(frozen=True)
-class UpdatedUserDTO(CreatedUserDTO):
-    pass
+class UpdatedUserDTO:
+    id: int
+    email: str
+    username: str
+    bio: str
+    image: str
 
 
 @dataclass(frozen=True)

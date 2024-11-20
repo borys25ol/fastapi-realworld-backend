@@ -119,15 +119,12 @@ class Container:
 
     def user_auth_service(self) -> IUserAuthService:
         return UserAuthService(
-            user_repo=self.user_repository(),
+            user_service=self.user_service(),
             auth_token_service=self.auth_token_service(),
         )
 
     def user_service(self) -> IUserService:
-        return UserService(
-            user_repo=self.user_repository(),
-            auth_token_service=self.auth_token_service(),
-        )
+        return UserService(user_repo=self.user_repository())
 
     def profile_service(self) -> IProfileService:
         return ProfileService(
