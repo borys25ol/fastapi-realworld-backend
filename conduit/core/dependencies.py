@@ -13,8 +13,8 @@ from conduit.core.security import HTTPTokenHeader
 from conduit.domain.dtos.user import UserDTO
 from conduit.services.article import ArticleService
 from conduit.services.auth import UserAuthService
+from conduit.services.auth_token import AuthTokenService
 from conduit.services.comment import CommentService
-from conduit.services.jwt import JWTTokenService
 from conduit.services.profile import ProfileService
 from conduit.services.tag import TagService
 from conduit.services.user import UserService
@@ -37,7 +37,7 @@ JWTTokenOptional = Annotated[str, Depends(token_security_optional)]
 
 DBSession = Annotated[AsyncSession, Depends(container.session)]
 
-IJWTTokenService = Annotated[JWTTokenService, Depends(container.jwt_service)]
+IAuthTokenService = Annotated[AuthTokenService, Depends(container.auth_token_service)]
 IUserAuthService = Annotated[UserAuthService, Depends(container.user_auth_service)]
 IUserService = Annotated[UserService, Depends(container.user_service)]
 IProfileService = Annotated[ProfileService, Depends(container.profile_service)]

@@ -12,10 +12,10 @@ from sqlalchemy_utils import create_database, database_exists, drop_database
 from conduit.app import create_app
 from conduit.core.config import get_app_settings
 from conduit.core.container import Container
-from conduit.core.dependencies import IArticleService, IJWTTokenService
+from conduit.core.dependencies import IArticleService, IAuthTokenService
 from conduit.core.settings.base import BaseAppSettings
 from conduit.domain.dtos.article import ArticleDTO, CreateArticleDTO
-from conduit.domain.dtos.jwt import AuthTokenDTO
+from conduit.domain.dtos.auth_token import TokenPayloadDTO
 from conduit.domain.dtos.user import CreateUserDTO, UserDTO
 from conduit.domain.repositories.article import IArticleRepository
 from conduit.domain.repositories.user import IUserRepository
@@ -96,8 +96,8 @@ def article_service(di_container: Container) -> IArticleService:
 
 
 @pytest.fixture
-def jwt_service(di_container: Container) -> IJWTTokenService:
-    return di_container.jwt_service()
+def auth_token_service(di_container: Container) -> IAuthTokenService:
+    return di_container.auth_token_service()
 
 
 @pytest.fixture
@@ -151,15 +151,15 @@ async def test_article(
 
 
 @pytest.fixture
-async def token_dto(jwt_service: IJWTTokenService, test_user: UserDTO) -> AuthTokenDTO:
-    return jwt_service.generate_token(user=test_user)
+async def jwt_token(auth_token_service: IAuthTokenService, test_user: UserDTO) -> str:
+    return auth_token_service.generate_jwt_token(user=test_user)
 
 
 @pytest.fixture
-async def not_exists_token_dto(
-    jwt_service: IJWTTokenService, not_exists_user: UserDTO
-) -> AuthTokenDTO:
-    return jwt_service.generate_token(user=not_exists_user)
+async def not_exists_jwt_token(
+    auth_token_service: IAuthTokenService, not_exists_user: UserDTO
+) -> str:
+    return auth_token_service.generate_jwt_token(user=not_exists_user)
 
 
 @pytest.fixture
@@ -173,14 +173,12 @@ async def test_client(application: FastAPI) -> AsyncClient:
 
 
 @pytest.fixture
-async def authorized_test_client(
-    application: FastAPI, token_dto: AuthTokenDTO
-) -> AsyncClient:
+async def authorized_test_client(application: FastAPI, jwt_token: str) -> AsyncClient:
     async with AsyncClient(
         app=application,
         base_url="http://testserver/api",
         headers={
-            "Authorization": f"Token {token_dto.token}",
+            "Authorization": f"Token {jwt_token}",
             "Content-Type": "application/json",
         },
     ) as client:

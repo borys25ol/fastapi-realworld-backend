@@ -15,15 +15,17 @@ from conduit.domain.dtos.user import (
 )
 from conduit.domain.repositories.user import IUserRepository
 from conduit.domain.services.auth import IUserAuthService
-from conduit.domain.services.jwt import IJWTTokenService
+from conduit.domain.services.auth_token import IAuthTokenService
 
 
 class UserAuthService(IUserAuthService):
     """Service to handle users auth logic."""
 
-    def __init__(self, user_repo: IUserRepository, jwt_service: IJWTTokenService):
+    def __init__(
+        self, user_repo: IUserRepository, auth_token_service: IAuthTokenService
+    ):
         self._user_repo = user_repo
-        self._jwt_service = jwt_service
+        self._auth_token_service = auth_token_service
 
     async def sign_up_user(
         self, session: AsyncSession, user_to_create: CreateUserDTO
@@ -39,14 +41,14 @@ class UserAuthService(IUserAuthService):
             raise UserNameAlreadyTakenException()
 
         user = await self._user_repo.create(session=session, create_item=user_to_create)
-        auth_token = self._jwt_service.generate_token(user=user)
+        jwt_token = self._auth_token_service.generate_jwt_token(user=user)
         return CreatedUserDTO(
             id=user.id,
             email=user.email,
             username=user.username,
             bio=user.bio,
             image=user.image_url,
-            token=auth_token.token,
+            token=jwt_token,
         )
 
     async def sign_in_user(
@@ -63,11 +65,11 @@ class UserAuthService(IUserAuthService):
         ):
             raise IncorrectLoginInputException()
 
-        auth_token = self._jwt_service.generate_token(user=user)
+        jwt_token = self._auth_token_service.generate_jwt_token(user=user)
         return LoggedInUserDTO(
             email=user.email,
             username=user.username,
             bio=user.bio,
             image=user.image_url,
-            token=auth_token.token,
+            token=jwt_token,
         )

@@ -1,11 +1,10 @@
 import contextlib
 from collections.abc import AsyncIterator
 
-from sqlalchemy import NullPool
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from conduit.core.config import get_app_settings
-from conduit.core.settings.base import AppEnvTypes, BaseAppSettings
+from conduit.core.settings.base import BaseAppSettings
 from conduit.domain.mapper import IModelMapper
 from conduit.domain.repositories.article import IArticleRepository
 from conduit.domain.repositories.article_tag import IArticleTagRepository
@@ -16,8 +15,8 @@ from conduit.domain.repositories.tag import ITagRepository
 from conduit.domain.repositories.user import IUserRepository
 from conduit.domain.services.article import IArticleService
 from conduit.domain.services.auth import IUserAuthService
+from conduit.domain.services.auth_token import IAuthTokenService
 from conduit.domain.services.comment import ICommentService
-from conduit.domain.services.jwt import IJWTTokenService
 from conduit.domain.services.profile import IProfileService
 from conduit.domain.services.tag import ITagService
 from conduit.domain.services.user import IUserService
@@ -34,8 +33,8 @@ from conduit.infrastructure.repositories.tag import TagRepository
 from conduit.infrastructure.repositories.user import UserRepository
 from conduit.services.article import ArticleService
 from conduit.services.auth import UserAuthService
+from conduit.services.auth_token import AuthTokenService
 from conduit.services.comment import CommentService
-from conduit.services.jwt import JWTTokenService
 from conduit.services.profile import ProfileService
 from conduit.services.tag import TagService
 from conduit.services.user import UserService
@@ -111,8 +110,8 @@ class Container:
     def favorite_repository() -> IFavoriteRepository:
         return FavoriteRepository()
 
-    def jwt_service(self) -> IJWTTokenService:
-        return JWTTokenService(
+    def auth_token_service(self) -> IAuthTokenService:
+        return AuthTokenService(
             secret_key=self._settings.jwt_secret_key,
             token_expiration_minutes=self._settings.jwt_token_expiration_minutes,
             algorithm=self._settings.jwt_algorithm,
@@ -120,12 +119,14 @@ class Container:
 
     def user_auth_service(self) -> IUserAuthService:
         return UserAuthService(
-            user_repo=self.user_repository(), jwt_service=self.jwt_service()
+            user_repo=self.user_repository(),
+            auth_token_service=self.auth_token_service(),
         )
 
     def user_service(self) -> IUserService:
         return UserService(
-            user_repo=self.user_repository(), jwt_service=self.jwt_service()
+            user_repo=self.user_repository(),
+            auth_token_service=self.auth_token_service(),
         )
 
     def profile_service(self) -> IProfileService:

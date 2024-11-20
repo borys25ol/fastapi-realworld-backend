@@ -4,14 +4,14 @@ import jwt
 from structlog import get_logger
 
 from conduit.core.exceptions import IncorrectJWTTokenException
-from conduit.domain.dtos.jwt import AuthTokenDTO, JWTUserDTO
+from conduit.domain.dtos.auth_token import TokenPayloadDTO
 from conduit.domain.dtos.user import UserDTO
-from conduit.domain.services.jwt import IJWTTokenService
+from conduit.domain.services.auth_token import IAuthTokenService
 
 logger = get_logger()
 
 
-class JWTTokenService(IJWTTokenService):
+class AuthTokenService(IAuthTokenService):
     """Service to handle JWT tokens."""
 
     def __init__(
@@ -21,19 +21,16 @@ class JWTTokenService(IJWTTokenService):
         self._algorithm = algorithm
         self._token_expiration_minutes = token_expiration_minutes
 
-    def generate_token(self, user: UserDTO) -> AuthTokenDTO:
+    def generate_jwt_token(self, user: UserDTO) -> str:
         expire = datetime.now() + timedelta(minutes=self._token_expiration_minutes)
         payload = {"user_id": user.id, "username": user.username, "exp": expire}
-        token = jwt.encode(payload, self._secret_key, algorithm=self._algorithm)
-        return AuthTokenDTO(token=token)
+        return jwt.encode(payload, self._secret_key, algorithm=self._algorithm)
 
-    def get_user_info_from_token(self, auth_token: AuthTokenDTO) -> JWTUserDTO:
+    def parse_jwt_token(self, token: str) -> TokenPayloadDTO:
         try:
-            payload = jwt.decode(
-                auth_token.token, self._secret_key, algorithms=[self._algorithm]
-            )
+            payload = jwt.decode(token, self._secret_key, algorithms=[self._algorithm])
         except jwt.InvalidTokenError as err:
-            logger.error("Invalid JWT token", token=auth_token.token, error=err)
+            logger.error("Invalid JWT token", token=token, error=err)
             raise IncorrectJWTTokenException()
 
-        return JWTUserDTO(user_id=payload["user_id"], username=payload["username"])
+        return TokenPayloadDTO(user_id=payload["user_id"], username=payload["username"])

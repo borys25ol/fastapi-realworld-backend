@@ -3,27 +3,26 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.core.security import verify_password
-from conduit.domain.dtos.jwt import AuthTokenDTO
 from conduit.domain.dtos.user import UserDTO
 from conduit.infrastructure.repositories.user import UserRepository
 
 
 @pytest.mark.anyio
 async def test_failed_login_with_invalid_token_prefix(
-    test_client: AsyncClient, test_user: UserDTO, token_dto: AuthTokenDTO
+    test_client: AsyncClient, test_user: UserDTO, jwt_token: str
 ) -> None:
     response = await test_client.get(
-        url="/user", headers={"Authorization": f"JWTToken {token_dto.token}"}
+        url="/user", headers={"Authorization": f"JWTToken {jwt_token}"}
     )
     assert response.status_code == 403
 
 
 @pytest.mark.anyio
 async def test_failed_login_when_user_does_not_exist(
-    test_client: AsyncClient, not_exists_token_dto: AuthTokenDTO
+    test_client: AsyncClient, not_exists_jwt_token: str
 ) -> None:
     response = await test_client.get(
-        url="/user", headers={"Authorization": f"Token {not_exists_token_dto.token}"}
+        url="/user", headers={"Authorization": f"Token {not_exists_jwt_token}"}
     )
     assert response.status_code == 400
 
@@ -38,7 +37,7 @@ async def test_user_can_not_get_profile_without_auth(
 
 @pytest.mark.anyio
 async def test_user_can_get_own_profile(
-    authorized_test_client: AsyncClient, token_dto: AuthTokenDTO
+    authorized_test_client: AsyncClient, jwt_token: str
 ) -> None:
     response = await authorized_test_client.get(url="/user")
     assert response.status_code == 200

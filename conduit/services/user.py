@@ -5,23 +5,23 @@ from conduit.core.exceptions import (
     IncorrectLoginInputException,
     UserNameAlreadyTakenException,
 )
-from conduit.domain.dtos.jwt import AuthTokenDTO
 from conduit.domain.dtos.user import UpdatedUserDTO, UpdateUserDTO, UserDTO
 from conduit.domain.repositories.user import IUserRepository
-from conduit.domain.services.jwt import IJWTTokenService
+from conduit.domain.services.auth_token import IAuthTokenService
 from conduit.domain.services.user import IUserService
 
 
 class UserService(IUserService):
     """Service to handle user get & update logic."""
 
-    def __init__(self, user_repo: IUserRepository, jwt_service: IJWTTokenService):
+    def __init__(
+        self, user_repo: IUserRepository, auth_token_service: IAuthTokenService
+    ) -> None:
         self._user_repo = user_repo
-        self._jwt_service = jwt_service
+        self._auth_token_service = auth_token_service
 
     async def get_current_user(self, session: AsyncSession, token: str) -> UserDTO:
-        auth_token = AuthTokenDTO(token=token)
-        jwt_user = self._jwt_service.get_user_info_from_token(auth_token=auth_token)
+        jwt_user = self._auth_token_service.parse_jwt_token(token=token)
         current_user = await self._user_repo.get_by_id(
             session=session, user_id=jwt_user.user_id
         )
@@ -51,12 +51,12 @@ class UserService(IUserService):
         updated_user = await self._user_repo.update(
             session=session, user_id=current_user.id, update_item=user_to_update
         )
-        auth_token = self._jwt_service.generate_token(user=updated_user)
+        jwt_token = self._auth_token_service.generate_jwt_token(user=updated_user)
         return UpdatedUserDTO(
             id=updated_user.id,
             email=updated_user.email,
             username=updated_user.username,
             bio=updated_user.bio,
             image=updated_user.image_url,
-            token=auth_token.token,
+            token=jwt_token,
         )
