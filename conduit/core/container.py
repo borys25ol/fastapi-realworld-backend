@@ -128,7 +128,7 @@ class Container:
 
     def profile_service(self) -> IProfileService:
         return ProfileService(
-            user_repo=self.user_repository(), follower_repo=self.follower_repository()
+            user_service=self.user_service(), follower_repo=self.follower_repository()
         )
 
     def tag_service(self) -> ITagService:

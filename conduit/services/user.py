@@ -1,9 +1,11 @@
+from collections.abc import Collection
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.core.exceptions import (
     EmailAlreadyTakenException,
-    IncorrectLoginInputException,
     UserNameAlreadyTakenException,
+    UserNotFoundException,
 )
 from conduit.domain.dtos.user import (
     CreateUserDTO,
@@ -40,14 +42,14 @@ class UserService(IUserService):
         if not (
             user := await self._user_repo.get_by_id(session=session, user_id=user_id)
         ):
-            raise IncorrectLoginInputException()
+            raise UserNotFoundException()
         return user
 
     async def get_user_by_email(self, session: AsyncSession, email: str) -> UserDTO:
         if not (
             user := await self._user_repo.get_by_email(session=session, email=email)
         ):
-            raise IncorrectLoginInputException()
+            raise UserNotFoundException()
         return user
 
     async def get_user_by_username(
@@ -58,8 +60,13 @@ class UserService(IUserService):
                 session=session, username=username
             )
         ):
-            raise IncorrectLoginInputException()
+            raise UserNotFoundException()
         return user
+
+    async def get_users_by_ids(
+        self, session: AsyncSession, user_ids: Collection[int]
+    ) -> list[UserDTO]:
+        return await self._user_repo.get_all_by_ids(session=session, ids=user_ids)
 
     async def update_user(
         self,

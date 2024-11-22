@@ -24,7 +24,7 @@ async def test_failed_login_when_user_does_not_exist(
     response = await test_client.get(
         url="/user", headers={"Authorization": f"Token {not_exists_jwt_token}"}
     )
-    assert response.status_code == 400
+    assert response.status_code == 404
 
 
 @pytest.mark.anyio

@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from structlog import get_logger
 
-from conduit.core.exceptions import IncorrectLoginInputException
+from conduit.core.exceptions import IncorrectLoginInputException, UserNotFoundException
 from conduit.domain.dtos.user import (
     CreatedUserDTO,
     CreateUserDTO,
@@ -11,6 +12,8 @@ from conduit.domain.services.auth import IUserAuthService
 from conduit.domain.services.auth_token import IAuthTokenService
 from conduit.domain.services.user import IUserService
 from conduit.services.password import verify_password
+
+logger = get_logger()
 
 
 class UserAuthService(IUserAuthService):
@@ -41,12 +44,18 @@ class UserAuthService(IUserAuthService):
     async def sign_in_user(
         self, session: AsyncSession, user_to_login: LoginUserDTO
     ) -> LoggedInUserDTO:
-        user = await self._user_service.get_user_by_email(
-            session=session, email=user_to_login.email
-        )
+        try:
+            user = await self._user_service.get_user_by_email(
+                session=session, email=user_to_login.email
+            )
+        except UserNotFoundException:
+            logger.error("User not found", email=user_to_login.email)
+            raise IncorrectLoginInputException()
+
         if not verify_password(
             plain_password=user_to_login.password, hashed_password=user.password_hash
         ):
+            logger.error("Incorrect password", user_id=user_to_login.email)
             raise IncorrectLoginInputException()
 
         jwt_token = self._auth_token_service.generate_jwt_token(user=user)

@@ -42,6 +42,13 @@ class BaseInternalException(Exception):
         )
 
 
+class UserNotFoundException(BaseInternalException):
+    """Exception raised when user not found in database."""
+
+    _status_code = 404
+    _message = "User with this username does not exist."
+
+
 class ArticleNotFoundException(BaseInternalException):
     """Exception raised when article not found in database."""
 

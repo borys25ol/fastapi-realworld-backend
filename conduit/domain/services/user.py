@@ -1,4 +1,5 @@
 import abc
+from collections.abc import Collection
 from typing import Any
 
 from conduit.domain.dtos.user import (
@@ -24,6 +25,11 @@ class IUserService(abc.ABC):
 
     @abc.abstractmethod
     async def get_user_by_username(self, session: Any, username: str) -> UserDTO: ...
+
+    @abc.abstractmethod
+    async def get_users_by_ids(
+        self, session: Any, user_ids: Collection[int]
+    ) -> list[UserDTO]: ...
 
     @abc.abstractmethod
     async def update_user(
