@@ -50,6 +50,9 @@ format:
 types:
 	mypy --namespace-packages -p "conduit" --config-file setup.cfg
 
+types-tests:
+	mypy --namespace-packages -p "tests" --config-file setup.cfg
+
 lint:
 	flake8 conduit
 	isort conduit --diff
