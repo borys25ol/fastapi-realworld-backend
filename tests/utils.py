@@ -24,6 +24,6 @@ async def create_another_test_article(
         body="Test Body",
         tags=["tag1", "tag2", "tag3"],
     )
-    return await article_repository.create(
+    return await article_repository.add(
         session=session, author_id=author_id, create_item=create_article_dto
     )

@@ -8,7 +8,7 @@ class ICommentRepository(abc.ABC):
     """Comment repository interface."""
 
     @abc.abstractmethod
-    async def create(
+    async def add(
         self,
         session: Any,
         author_id: int,
@@ -17,17 +17,18 @@ class ICommentRepository(abc.ABC):
     ) -> CommentRecordDTO: ...
 
     @abc.abstractmethod
-    async def get_by_id(
+    async def get_or_none(
         self, session: Any, comment_id: int
     ) -> CommentRecordDTO | None: ...
 
     @abc.abstractmethod
-    async def get_all_by_article_id(
-        self, session: Any, article_id: int
-    ) -> list[CommentRecordDTO]: ...
+    async def get(self, session: Any, comment_id: int) -> CommentRecordDTO: ...
 
     @abc.abstractmethod
-    async def delete_by_id(self, session: Any, comment_id: int) -> None: ...
+    async def list(self, session: Any, article_id: int) -> list[CommentRecordDTO]: ...
 
     @abc.abstractmethod
-    async def count_by_article_id(self, session: Any, article_id: int) -> int: ...
+    async def delete(self, session: Any, comment_id: int) -> None: ...
+
+    @abc.abstractmethod
+    async def count(self, session: Any, article_id: int) -> int: ...

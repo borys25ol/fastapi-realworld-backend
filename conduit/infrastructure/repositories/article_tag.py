@@ -16,7 +16,7 @@ class ArticleTagRepository(IArticleTagRepository):
     def __init__(self, tag_mapper: IModelMapper[Tag, TagDTO]):
         self._tag_mapper = tag_mapper
 
-    async def create_many(
+    async def add_many(
         self, session: AsyncSession, article_id: int, tags: list[str]
     ) -> list[TagDTO]:
         insert_query = (
@@ -46,9 +46,7 @@ class ArticleTagRepository(IArticleTagRepository):
 
         return tags
 
-    async def get_all_by_article_id(
-        self, session: AsyncSession, article_id: int
-    ) -> list[TagDTO]:
+    async def list(self, session: AsyncSession, article_id: int) -> list[TagDTO]:
         query = (
             select(Tag, ArticleTag)
             .where(

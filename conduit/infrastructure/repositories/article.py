@@ -4,6 +4,7 @@ from sqlalchemy import delete, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.functions import count
 
+from conduit.core.exceptions import ArticleNotFoundException
 from conduit.core.utils.slug import (
     get_slug_unique_part,
     make_slug_from_title,
@@ -31,7 +32,7 @@ class ArticleRepository(IArticleRepository):
     def __init__(self, article_mapper: IModelMapper[Article, ArticleRecordDTO]):
         self._article_mapper = article_mapper
 
-    async def create(
+    async def add(
         self, session: AsyncSession, author_id: int, create_item: CreateArticleDTO
     ) -> ArticleRecordDTO:
         query = (
@@ -50,7 +51,7 @@ class ArticleRepository(IArticleRepository):
         result = await session.execute(query)
         return self._article_mapper.to_dto(result.scalar())
 
-    async def get_by_slug(
+    async def get_by_slug_or_none(
         self, session: AsyncSession, slug: str
     ) -> ArticleRecordDTO | None:
         slug_unique_part = get_slug_unique_part(slug=slug)
@@ -59,6 +60,15 @@ class ArticleRepository(IArticleRepository):
         )
         if article := await session.scalar(query):
             return self._article_mapper.to_dto(article)
+
+    async def get_by_slug(self, session: AsyncSession, slug: str) -> ArticleRecordDTO:
+        slug_unique_part = get_slug_unique_part(slug=slug)
+        query = select(Article).where(
+            Article.slug == slug or Article.slug.contains(slug_unique_part)
+        )
+        if not (article := await session.scalar(query)):
+            raise ArticleNotFoundException()
+        return self._article_mapper.to_dto(article)
 
     async def delete_by_slug(self, session: AsyncSession, slug: str) -> None:
         query = delete(Article).where(Article.slug == slug)
@@ -86,7 +96,7 @@ class ArticleRepository(IArticleRepository):
         article = await session.scalar(query)
         return self._article_mapper.to_dto(article)
 
-    async def get_all_by_following_profiles(
+    async def list_by_followings(
         self, session: AsyncSession, user_id: int, limit: int, offset: int
     ) -> list[ArticleRecordDTO]:
         query = (
@@ -119,7 +129,7 @@ class ArticleRepository(IArticleRepository):
         articles = await session.execute(query)
         return [self._article_mapper.to_dto(article) for article in articles]
 
-    async def get_all_by_filters(
+    async def list_by_filters(
         self,
         session: AsyncSession,
         limit: int,
@@ -179,9 +189,7 @@ class ArticleRepository(IArticleRepository):
         articles = await session.execute(query)
         return [self._article_mapper.to_dto(article) for article in articles]
 
-    async def count_by_following_profiles(
-        self, session: AsyncSession, user_id: int
-    ) -> int:
+    async def count_by_followings(self, session: AsyncSession, user_id: int) -> int:
         query = select(count(Article.id)).join(
             Follower,
             (

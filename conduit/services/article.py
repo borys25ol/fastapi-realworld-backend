@@ -43,14 +43,14 @@ class ArticleService(IArticleService):
     async def create_new_article(
         self, session: AsyncSession, author_id: int, article_to_create: CreateArticleDTO
     ) -> ArticleDTO:
-        article = await self._article_repo.create(
+        article = await self._article_repo.add(
             session=session, author_id=author_id, create_item=article_to_create
         )
         profile = await self._profile_service.get_profile_by_user_id(
             session=session, user_id=author_id
         )
         if article_to_create.tags:
-            await self._article_tag_repo.create_many(
+            await self._article_tag_repo.add_many(
                 session=session, article_id=article.id, tags=article_to_create.tags
             )
         return ArticleDTO(
@@ -65,7 +65,9 @@ class ArticleService(IArticleService):
         self, session: AsyncSession, slug: str, current_user: UserDTO | None
     ) -> ArticleDTO:
         article = await get_or_raise(
-            awaitable=self._article_repo.get_by_slug(session=session, slug=slug),
+            awaitable=self._article_repo.get_by_slug_or_none(
+                session=session, slug=slug
+            ),
             exception=ArticleNotFoundException(),
         )
         profile = await self._profile_service.get_profile_by_user_id(
@@ -82,7 +84,9 @@ class ArticleService(IArticleService):
         self, session: AsyncSession, slug: str, current_user: UserDTO
     ) -> None:
         article = await get_or_raise(
-            awaitable=self._article_repo.get_by_slug(session=session, slug=slug),
+            awaitable=self._article_repo.get_by_slug_or_none(
+                session=session, slug=slug
+            ),
             exception=ArticleNotFoundException(),
         )
         if article.author_id != current_user.id:
@@ -98,7 +102,9 @@ class ArticleService(IArticleService):
         current_user: UserDTO,
     ) -> ArticleDTO:
         article = await get_or_raise(
-            awaitable=self._article_repo.get_by_slug(session=session, slug=slug),
+            awaitable=self._article_repo.get_by_slug_or_none(
+                session=session, slug=slug
+            ),
             exception=ArticleNotFoundException(),
         )
         if article.author_id != current_user.id:
@@ -124,7 +130,7 @@ class ArticleService(IArticleService):
         author: str | None = None,
         favorited: str | None = None,
     ) -> ArticlesFeedDTO:
-        articles = await self._article_repo.get_all_by_filters(
+        articles = await self._article_repo.list_by_filters(
             session=session,
             limit=limit,
             offset=offset,
@@ -154,7 +160,7 @@ class ArticleService(IArticleService):
     async def get_articles_by_following_profiles(
         self, session: AsyncSession, current_user: UserDTO, limit: int, offset: int
     ) -> ArticlesFeedDTO:
-        articles = await self._article_repo.get_all_by_following_profiles(
+        articles = await self._article_repo.list_by_followings(
             session=session, user_id=current_user.id, limit=limit, offset=offset
         )
         profiles_map = await self._get_profiles_mapping(
@@ -169,7 +175,7 @@ class ArticleService(IArticleService):
             )
             for article in articles
         ]
-        articles_count = await self._article_repo.count_by_following_profiles(
+        articles_count = await self._article_repo.count_by_followings(
             session=session, user_id=current_user.id
         )
         return ArticlesFeedDTO(
@@ -223,7 +229,7 @@ class ArticleService(IArticleService):
     ) -> ArticleDTO:
         article_tags = [
             tag.tag
-            for tag in await self._article_tag_repo.get_all_by_article_id(
+            for tag in await self._article_tag_repo.list(
                 session=session, article_id=article.id
             )
         ]

@@ -12,12 +12,17 @@ class IArticleRepository(abc.ABC):
     """Article repository interface."""
 
     @abc.abstractmethod
-    async def create(
+    async def add(
         self, session: Any, author_id: int, create_item: CreateArticleDTO
     ) -> ArticleRecordDTO: ...
 
     @abc.abstractmethod
-    async def get_by_slug(self, session: Any, slug: str) -> ArticleRecordDTO | None: ...
+    async def get_by_slug_or_none(
+        self, session: Any, slug: str
+    ) -> ArticleRecordDTO | None: ...
+
+    @abc.abstractmethod
+    async def get_by_slug(self, session: Any, slug: str) -> ArticleRecordDTO: ...
 
     @abc.abstractmethod
     async def delete_by_slug(self, session: Any, slug: str) -> None: ...
@@ -28,12 +33,12 @@ class IArticleRepository(abc.ABC):
     ) -> ArticleRecordDTO: ...
 
     @abc.abstractmethod
-    async def get_all_by_following_profiles(
+    async def list_by_followings(
         self, session: Any, user_id: int, limit: int, offset: int
     ) -> list[ArticleRecordDTO]: ...
 
     @abc.abstractmethod
-    async def get_all_by_filters(
+    async def list_by_filters(
         self,
         session: Any,
         limit: int,
@@ -44,7 +49,7 @@ class IArticleRepository(abc.ABC):
     ) -> list[ArticleRecordDTO]: ...
 
     @abc.abstractmethod
-    async def count_by_following_profiles(self, session: Any, user_id: int) -> int: ...
+    async def count_by_followings(self, session: Any, user_id: int) -> int: ...
 
     @abc.abstractmethod
     async def count_by_filters(
