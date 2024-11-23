@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from conduit.core.exceptions import (
     EmailAlreadyTakenException,
     UserNameAlreadyTakenException,
-    UserNotFoundException,
 )
 from conduit.domain.dtos.user import (
     CreateUserDTO,
@@ -26,47 +25,33 @@ class UserService(IUserService):
     async def create_user(
         self, session: AsyncSession, user_to_create: CreateUserDTO
     ) -> UserDTO:
-        if await self._user_repo.get_by_email(
+        if await self._user_repo.get_by_email_or_none(
             session=session, email=user_to_create.email
         ):
             raise EmailAlreadyTakenException()
 
-        if await self._user_repo.get_by_username(
+        if await self._user_repo.get_by_username_or_none(
             session=session, username=user_to_create.username
         ):
             raise UserNameAlreadyTakenException()
 
-        return await self._user_repo.create(session=session, create_item=user_to_create)
+        return await self._user_repo.add(session=session, create_item=user_to_create)
 
     async def get_user_by_id(self, session: AsyncSession, user_id: int) -> UserDTO:
-        if not (
-            user := await self._user_repo.get_by_id(session=session, user_id=user_id)
-        ):
-            raise UserNotFoundException()
-        return user
+        return await self._user_repo.get(session=session, user_id=user_id)
 
     async def get_user_by_email(self, session: AsyncSession, email: str) -> UserDTO:
-        if not (
-            user := await self._user_repo.get_by_email(session=session, email=email)
-        ):
-            raise UserNotFoundException()
-        return user
+        return await self._user_repo.get_by_email(session=session, email=email)
 
     async def get_user_by_username(
         self, session: AsyncSession, username: str
     ) -> UserDTO:
-        if not (
-            user := await self._user_repo.get_by_username(
-                session=session, username=username
-            )
-        ):
-            raise UserNotFoundException()
-        return user
+        return await self._user_repo.get_by_username(session=session, username=username)
 
     async def get_users_by_ids(
         self, session: AsyncSession, user_ids: Collection[int]
     ) -> list[UserDTO]:
-        return await self._user_repo.get_all_by_ids(session=session, ids=user_ids)
+        return await self._user_repo.list_by_users(session=session, user_ids=user_ids)
 
     async def update_user(
         self,
@@ -75,13 +60,13 @@ class UserService(IUserService):
         user_to_update: UpdateUserDTO,
     ) -> UpdatedUserDTO:
         if user_to_update.username and user_to_update.username != current_user.username:
-            if await self._user_repo.get_by_username(
+            if await self._user_repo.get_by_username_or_none(
                 session=session, username=user_to_update.username
             ):
                 raise UserNameAlreadyTakenException()
 
         if user_to_update.email and user_to_update.email != current_user.email:
-            if await self._user_repo.get_by_email(
+            if await self._user_repo.get_by_email_or_none(
                 session=session, email=user_to_update.email
             ):
                 raise EmailAlreadyTakenException()

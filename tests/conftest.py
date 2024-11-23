@@ -134,7 +134,7 @@ async def test_user(
     user_repository: IUserRepository,
     user_to_create: CreateUserDTO,
 ) -> UserDTO:
-    return await user_repository.create(session=session, create_item=user_to_create)
+    return await user_repository.add(session=session, create_item=user_to_create)
 
 
 @pytest.fixture

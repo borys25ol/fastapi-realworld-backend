@@ -13,7 +13,7 @@ class TagRepository(ITagRepository):
     def __init__(self, tag_mapper: IModelMapper[Tag, TagDTO]):
         self._tag_mapper = tag_mapper
 
-    async def get_all(self, session: AsyncSession) -> list[TagDTO]:
+    async def list(self, session: AsyncSession) -> list[TagDTO]:
         query = select(Tag)
         tags = await session.scalars(query)
         return [self._tag_mapper.to_dto(tag) for tag in tags]

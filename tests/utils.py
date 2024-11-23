@@ -12,7 +12,7 @@ async def create_another_test_user(
     create_user_dto = CreateUserDTO(
         username="temp-user", email="temp-user@gmail.com", password="password"
     )
-    return await user_repository.create(session=session, create_item=create_user_dto)
+    return await user_repository.add(session=session, create_item=create_user_dto)
 
 
 async def create_another_test_article(

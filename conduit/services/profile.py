@@ -76,7 +76,7 @@ class ProfileService(IProfileService):
             session=session, user_ids=user_ids
         )
         following_user_ids = (
-            await self._follower_repo.get_all_by_follower_id_and_following_ids(
+            await self._follower_repo.list(
                 session=session,
                 follower_id=current_user.id,
                 following_ids=[user.id for user in target_users],

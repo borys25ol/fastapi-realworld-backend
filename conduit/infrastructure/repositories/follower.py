@@ -24,7 +24,7 @@ class FollowerRepository(IFollowerRepository):
         result = await session.execute(query)
         return result.scalar()
 
-    async def get_all_by_follower_id_and_following_ids(
+    async def list(
         self, session: AsyncSession, follower_id: int, following_ids: list[int]
     ) -> list[int]:
         query = select(Follower.following_id).where(

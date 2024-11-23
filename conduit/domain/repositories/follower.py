@@ -11,7 +11,7 @@ class IFollowerRepository(abc.ABC):
     ) -> bool: ...
 
     @abc.abstractmethod
-    async def get_all_by_follower_id_and_following_ids(
+    async def list(
         self, session: Any, follower_id: int, following_ids: list[int]
     ) -> list[int]: ...
 

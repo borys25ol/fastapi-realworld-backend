@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from conduit.core.exceptions import UserNotFoundException
 from conduit.domain.dtos.user import CreateUserDTO, UpdateUserDTO, UserDTO
 from conduit.domain.mapper import IModelMapper
 from conduit.domain.repositories.user import IUserRepository
@@ -17,9 +18,7 @@ class UserRepository(IUserRepository):
     def __init__(self, user_mapper: IModelMapper[User, UserDTO]):
         self._user_mapper = user_mapper
 
-    async def create(
-        self, session: AsyncSession, create_item: CreateUserDTO
-    ) -> UserDTO:
+    async def add(self, session: AsyncSession, create_item: CreateUserDTO) -> UserDTO:
         query = (
             insert(User)
             .values(
@@ -35,29 +34,49 @@ class UserRepository(IUserRepository):
         result = await session.execute(query)
         return self._user_mapper.to_dto(result.scalar())
 
-    async def get_by_email(self, session: AsyncSession, email: str) -> UserDTO | None:
+    async def get_by_email_or_none(
+        self, session: AsyncSession, email: str
+    ) -> UserDTO | None:
         query = select(User).where(User.email == email)
         if user := await session.scalar(query):
             return self._user_mapper.to_dto(user)
 
-    async def get_by_id(self, session: AsyncSession, user_id: int) -> UserDTO | None:
+    async def get_by_email(self, session: AsyncSession, email: str) -> UserDTO:
+        query = select(User).where(User.email == email)
+        if not (user := await session.scalar(query)):
+            raise UserNotFoundException()
+        return self._user_mapper.to_dto(user)
+
+    async def get_or_none(self, session: AsyncSession, user_id: int) -> UserDTO | None:
         query = select(User).where(User.id == user_id)
         if user := await session.scalar(query):
             return self._user_mapper.to_dto(user)
 
-    async def get_all_by_ids(
-        self, session: AsyncSession, ids: Collection[int]
+    async def get(self, session: AsyncSession, user_id: int) -> UserDTO:
+        query = select(User).where(User.id == user_id)
+        if not (user := await session.scalar(query)):
+            raise UserNotFoundException()
+        return self._user_mapper.to_dto(user)
+
+    async def list_by_users(
+        self, session: AsyncSession, user_ids: Collection[int]
     ) -> list[UserDTO]:
-        query = select(User).where(User.id.in_(ids))
+        query = select(User).where(User.id.in_(user_ids))
         users = await session.scalars(query)
         return [self._user_mapper.to_dto(user) for user in users]
 
-    async def get_by_username(
+    async def get_by_username_or_none(
         self, session: AsyncSession, username: str
     ) -> UserDTO | None:
         query = select(User).where(User.username == username)
         if user := await session.scalar(query):
             return self._user_mapper.to_dto(user)
+
+    async def get_by_username(self, session: AsyncSession, username: str) -> UserDTO:
+        query = select(User).where(User.username == username)
+        if not (user := await session.scalar(query)):
+            raise UserNotFoundException()
+        return self._user_mapper.to_dto(user)
 
     async def update(
         self, session: AsyncSession, user_id: int, update_item: UpdateUserDTO
