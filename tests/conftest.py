@@ -1,4 +1,5 @@
 import os
+from collections.abc import Generator
 from datetime import datetime
 from typing import TypeAlias
 
@@ -29,12 +30,12 @@ def anyio_backend() -> str:
 
 
 @pytest.fixture(autouse=True)
-def check_app_env_mode_enabled():
+def check_app_env_mode_enabled() -> None:
     assert os.getenv("APP_ENV") == "test"
 
 
 @pytest.fixture(scope="session")
-def create_test_db(settings: BaseAppSettings) -> None:
+def create_test_db(settings: BaseAppSettings) -> Generator[None, None, None]:
     test_db_sql_uri = settings.sql_db_uri.set(drivername="postgresql")
 
     if database_exists(url=test_db_sql_uri):
@@ -47,7 +48,7 @@ def create_test_db(settings: BaseAppSettings) -> None:
 
 
 @pytest.fixture(autouse=True)
-def create_tables(settings: BaseAppSettings) -> None:
+def create_tables(settings: BaseAppSettings) -> Generator[None, None, None]:
     engine = create_engine(
         url=settings.sql_db_uri.set(drivername="postgresql"),
         isolation_level="AUTOCOMMIT",

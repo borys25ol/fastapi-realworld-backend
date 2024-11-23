@@ -31,7 +31,7 @@ async def test_authenticated_user_can_get_own_profile(
 @pytest.mark.anyio
 async def test_not_authenticated_user_can_not_follow_another_user_profile(
     test_client: AsyncClient, test_user: UserDTO
-):
+) -> None:
     response = await test_client.post(url=f"/profiles/{test_user.username}/follow")
     assert response.status_code == 403
 
@@ -39,7 +39,7 @@ async def test_not_authenticated_user_can_not_follow_another_user_profile(
 @pytest.mark.anyio
 async def test_authenticated_user_cant_follow_own_profile(
     authorized_test_client: AsyncClient, test_user: UserDTO
-):
+) -> None:
     response = await authorized_test_client.post(
         url=f"/profiles/{test_user.username}/follow"
     )
@@ -52,7 +52,7 @@ async def test_authenticated_user_cant_follow_another_profile(
     test_user: UserDTO,
     user_repository: UserRepository,
     session: AsyncSession,
-):
+) -> None:
     new_user = await create_another_test_user(
         session=session, user_repository=user_repository
     )
@@ -69,7 +69,7 @@ async def test_authenticated_user_cant_follow_already_followed_profile(
     test_user: UserDTO,
     user_repository: UserRepository,
     session: AsyncSession,
-):
+) -> None:
     new_user = await create_another_test_user(
         session=session, user_repository=user_repository
     )
@@ -90,7 +90,7 @@ async def test_authenticated_user_cant_unfollow_not_followed_profile(
     authorized_test_client: AsyncClient,
     user_repository: UserRepository,
     session: AsyncSession,
-):
+) -> None:
     new_user = await create_another_test_user(
         session=session, user_repository=user_repository
     )
@@ -105,7 +105,7 @@ async def test_authenticated_user_can_unfollow_followed_profile(
     authorized_test_client: AsyncClient,
     user_repository: UserRepository,
     session: AsyncSession,
-):
+) -> None:
     new_user = await create_another_test_user(
         session=session, user_repository=user_repository
     )
@@ -127,7 +127,7 @@ async def test_authenticated_user_can_unfollow_already_unfollowed_profile(
     authorized_test_client: AsyncClient,
     user_repository: UserRepository,
     session: AsyncSession,
-):
+) -> None:
     new_user = await create_another_test_user(
         session=session, user_repository=user_repository
     )
