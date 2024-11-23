@@ -23,11 +23,11 @@ class IProfileService(abc.ABC):
     ) -> list[ProfileDTO]: ...
 
     @abc.abstractmethod
-    async def add_user_into_followers(
+    async def follow_user(
         self, session: Any, username: str, current_user: UserDTO
     ) -> None: ...
 
     @abc.abstractmethod
-    async def remove_user_from_followers(
+    async def unfollow_user(
         self, session: Any, username: str, current_user: UserDTO
     ) -> None: ...

@@ -35,9 +35,9 @@ async def follow_username(
     profile_service: IProfileService,
 ) -> ProfileResponse:
     """
-    Follow username profile.
+    Follow profile with specific username.
     """
-    await profile_service.add_user_into_followers(
+    await profile_service.follow_user(
         session=session, username=username, current_user=current_user
     )
     profile_dto = await profile_service.get_profile_by_username(
@@ -54,9 +54,9 @@ async def unfollow_username(
     profile_service: IProfileService,
 ) -> ProfileResponse:
     """
-    Unfollow username profile.
+    Unfollow profile with specific username
     """
-    await profile_service.remove_user_from_followers(
+    await profile_service.unfollow_user(
         session=session, username=username, current_user=current_user
     )
     profile_dto = await profile_service.get_profile_by_username(

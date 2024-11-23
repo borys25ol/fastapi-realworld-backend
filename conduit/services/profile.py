@@ -95,7 +95,7 @@ class ProfileService(IProfileService):
             for user_dto in target_users
         ]
 
-    async def add_user_into_followers(
+    async def follow_user(
         self, session: AsyncSession, username: str, current_user: UserDTO
     ) -> None:
         if username == current_user.username:
@@ -113,7 +113,7 @@ class ProfileService(IProfileService):
             session=session, follower_id=current_user.id, following_id=target_user.id
         )
 
-    async def remove_user_from_followers(
+    async def unfollow_user(
         self, session: AsyncSession, username: str, current_user: UserDTO
     ) -> None:
         if username == current_user.username:
