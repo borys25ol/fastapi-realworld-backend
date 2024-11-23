@@ -8,6 +8,7 @@ from conduit.core.exceptions import (
     ArticlePermissionException,
 )
 from conduit.domain.dtos.article import (
+    ArticleAuthorDTO,
     ArticleDTO,
     ArticleRecordDTO,
     ArticlesFeedDTO,
@@ -53,7 +54,12 @@ class ArticleService(IArticleService):
             )
         return ArticleDTO(
             **asdict(article),
-            author=profile,
+            author=ArticleAuthorDTO(
+                username=profile.username,
+                bio=profile.bio,
+                image=profile.image,
+                following=profile.following,
+            ),
             tags=article_to_create.tags,
             favorited=False,
             favorites_count=0,
@@ -142,7 +148,31 @@ class ArticleService(IArticleService):
             articles=articles_with_extra, articles_count=articles_count
         )
 
-    async def get_articles_by_following_profiles(
+    async def get_articles_by_filters_v2(
+        self,
+        session: AsyncSession,
+        current_user: UserDTO | None,
+        limit: int,
+        offset: int,
+        tag: str | None = None,
+        author: str | None = None,
+        favorited: str | None = None,
+    ) -> ArticlesFeedDTO:
+        articles = await self._article_repo.list_by_filters_v2(
+            session=session,
+            user_id=current_user.id if current_user else None,
+            limit=limit,
+            offset=offset,
+            tag=tag,
+            author=author,
+            favorited=favorited,
+        )
+        articles_count = await self._article_repo.count_by_filters(
+            session=session, tag=tag, author=author, favorited=favorited
+        )
+        return ArticlesFeedDTO(articles=articles, articles_count=articles_count)
+
+    async def get_articles_feed(
         self, session: AsyncSession, current_user: UserDTO, limit: int, offset: int
     ) -> ArticlesFeedDTO:
         articles = await self._article_repo.list_by_followings(
@@ -166,6 +196,17 @@ class ArticleService(IArticleService):
         return ArticlesFeedDTO(
             articles=articles_with_extra, articles_count=articles_count
         )
+
+    async def get_articles_feed_v2(
+        self, session: AsyncSession, current_user: UserDTO, limit: int, offset: int
+    ) -> ArticlesFeedDTO:
+        articles = await self._article_repo.list_by_followings_v2(
+            session=session, user_id=current_user.id, limit=limit, offset=offset
+        )
+        articles_count = await self._article_repo.count_by_followings(
+            session=session, user_id=current_user.id
+        )
+        return ArticlesFeedDTO(articles=articles, articles_count=articles_count)
 
     async def add_article_into_favorites(
         self, session: AsyncSession, slug: str, current_user: UserDTO
@@ -230,7 +271,12 @@ class ArticleService(IArticleService):
         )
         return ArticleDTO(
             **asdict(article),
-            author=profile,
+            author=ArticleAuthorDTO(
+                username=profile.username,
+                bio=profile.bio,
+                image=profile.image,
+                following=profile.following,
+            ),
             tags=article_tags,
             favorited=is_favorited_by_user,
             favorites_count=favorites_count,

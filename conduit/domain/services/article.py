@@ -28,12 +28,29 @@ class IArticleService(abc.ABC):
     ) -> None: ...
 
     @abc.abstractmethod
-    async def get_articles_by_following_profiles(
+    async def get_articles_feed(
+        self, session: Any, current_user: UserDTO, limit: int, offset: int
+    ) -> ArticlesFeedDTO: ...
+
+    @abc.abstractmethod
+    async def get_articles_feed_v2(
         self, session: Any, current_user: UserDTO, limit: int, offset: int
     ) -> ArticlesFeedDTO: ...
 
     @abc.abstractmethod
     async def get_articles_by_filters(
+        self,
+        session: Any,
+        current_user: UserDTO | None,
+        limit: int,
+        offset: int,
+        tag: str | None = None,
+        author: str | None = None,
+        favorited: str | None = None,
+    ) -> ArticlesFeedDTO: ...
+
+    @abc.abstractmethod
+    async def get_articles_by_filters_v2(
         self,
         session: Any,
         current_user: UserDTO | None,

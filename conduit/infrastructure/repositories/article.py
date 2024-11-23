@@ -1,7 +1,9 @@
 from datetime import datetime
+from typing import Any
 
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import case, delete, exists, func, insert, select, true, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 from sqlalchemy.sql.functions import count
 
 from conduit.core.exceptions import ArticleNotFoundException
@@ -11,6 +13,8 @@ from conduit.core.utils.slug import (
     make_slug_from_title_and_code,
 )
 from conduit.domain.dtos.article import (
+    ArticleAuthorDTO,
+    ArticleDTO,
     ArticleRecordDTO,
     CreateArticleDTO,
     UpdateArticleDTO,
@@ -25,6 +29,9 @@ from conduit.infrastructure.models import (
     Tag,
     User,
 )
+
+# Aliases for the models if needed.
+FavoriteAlias = aliased(Favorite)
 
 
 class ArticleRepository(IArticleRepository):
@@ -129,6 +136,70 @@ class ArticleRepository(IArticleRepository):
         articles = await session.execute(query)
         return [self._article_mapper.to_dto(article) for article in articles]
 
+    async def list_by_followings_v2(
+        self, session: AsyncSession, user_id: int, limit: int, offset: int
+    ) -> list[ArticleDTO]:
+        query = (
+            select(
+                Article.id.label("id"),
+                Article.author_id.label("author_id"),
+                Article.slug.label("slug"),
+                Article.title.label("title"),
+                Article.description.label("description"),
+                Article.body.label("body"),
+                Article.created_at.label("created_at"),
+                Article.updated_at.label("updated_at"),
+                User.id.label("user_id"),
+                User.username.label("username"),
+                User.bio.label("bio"),
+                User.email.label("email"),
+                User.image_url.label("image_url"),
+                true().label("following"),
+                # Subquery for favorites count.
+                select(func.count(Favorite.article_id))
+                .where(Favorite.article_id == Article.id)
+                .scalar_subquery()
+                .label("favorites_count"),
+                # Subquery to check if favorited by user with id `user_id`.
+                exists()
+                .where(
+                    (Favorite.user_id == user_id) & (Favorite.article_id == Article.id)
+                )
+                .label("favorited"),
+                # Concatenate tags.
+                func.string_agg(Tag.tag, ", ").label("tags"),
+            )
+            .join(User, Article.author_id == User.id)
+            .join(ArticleTag, Article.id == ArticleTag.article_id)
+            .join(Tag, Tag.id == ArticleTag.tag_id)
+            .filter(
+                User.id.in_(
+                    select(Follower.following_id)
+                    .where(Follower.follower_id == user_id)
+                    .scalar_subquery()
+                )
+            )
+            .group_by(
+                Article.id,
+                Article.author_id,
+                Article.slug,
+                Article.title,
+                Article.description,
+                Article.body,
+                Article.created_at,
+                Article.updated_at,
+                User.id,
+                User.username,
+                User.bio,
+                User.email,
+                User.image_url,
+            )
+        )
+        query = query.limit(limit).offset(offset)
+        articles = await session.execute(query)
+
+        return [self._to_article_dto(article) for article in articles]
+
     async def list_by_filters(
         self,
         session: AsyncSession,
@@ -189,6 +260,96 @@ class ArticleRepository(IArticleRepository):
         articles = await session.execute(query)
         return [self._article_mapper.to_dto(article) for article in articles]
 
+    async def list_by_filters_v2(
+        self,
+        session: AsyncSession,
+        user_id: int | None,
+        limit: int,
+        offset: int,
+        tag: str | None = None,
+        author: str | None = None,
+        favorited: str | None = None,
+    ) -> list[ArticleDTO]:
+        query = (
+            # fmt: off
+            select(
+                Article.id.label("id"),
+                Article.author_id.label("author_id"),
+                Article.slug.label("slug"),
+                Article.title.label("title"),
+                Article.description.label("description"),
+                Article.body.label("body"),
+                Article.created_at.label("created_at"),
+                Article.updated_at.label("updated_at"),
+                User.id.label("user_id"),
+                User.username.label("username"),
+                User.bio.label("bio"),
+                User.email.label("email"),
+                User.image_url.label("image_url"),
+                exists()
+                .where(
+                    (Follower.follower_id == user_id) &
+                    (Follower.following_id == Article.author_id)
+                )
+                .label("following"),
+                # Subquery for favorites count.
+                select(
+                    func.count(Favorite.article_id)
+                ).where(
+                    Favorite.article_id == Article.id).scalar_subquery()
+                .label("favorites_count"),
+                # Subquery to check if favorited by user with id `user_id`.
+                exists()
+                .where(
+                    (Favorite.user_id == user_id) &
+                    (Favorite.article_id == Article.id)
+                )
+                .label("favorited"),
+                # Concatenate tags.
+                func.string_agg(Tag.tag, ", ").label("tags"),
+            )
+            .outerjoin(User, Article.author_id == User.id)
+            .outerjoin(ArticleTag, Article.id == ArticleTag.article_id)
+            .outerjoin(FavoriteAlias, FavoriteAlias.article_id == Article.id)
+            .outerjoin(Tag, Tag.id == ArticleTag.tag_id)
+            .filter(
+                # Filter by author username if provided.
+                case((author is not None, User.username == author), else_=True),
+                # Filter by tag if provided.
+                case((tag is not None, Tag.tag == tag), else_=True),
+                # Filter by "favorited by" username if provided.
+                case(
+                    (
+                        favorited is not None,
+                        FavoriteAlias.user_id == select(User.id)
+                        .where(User.username == favorited)
+                        .scalar_subquery(),
+                    ),
+                    else_=True,
+                ),
+            )
+            .group_by(
+                Article.id,
+                Article.author_id,
+                Article.slug,
+                Article.title,
+                Article.description,
+                Article.body,
+                Article.created_at,
+                Article.updated_at,
+                User.id,
+                User.username,
+                User.bio,
+                User.email,
+                User.image_url,
+            )
+            # fmt: on
+        )
+
+        query = query.limit(limit).offset(offset)
+        articles = await session.execute(query)
+        return [self._to_article_dto(article) for article in articles]
+
     async def count_by_followings(self, session: AsyncSession, user_id: int) -> int:
         query = select(count(Article.id)).join(
             Follower,
@@ -245,3 +406,25 @@ class ArticleRepository(IArticleRepository):
 
         result = await session.execute(query)
         return result.scalar()
+
+    @staticmethod
+    def _to_article_dto(res: Any) -> ArticleDTO:
+        return ArticleDTO(
+            id=res.id,
+            author_id=res.author_id,
+            slug=res.slug,
+            title=res.title,
+            description=res.description,
+            body=res.body,
+            tags=res.tags,
+            author=ArticleAuthorDTO(
+                username=res.username,
+                bio=res.bio,
+                image=res.image_url,
+                following=res.following,
+            ),
+            created_at=res.created_at,
+            updated_at=res.updated_at,
+            favorited=res.favorited,
+            favorites_count=res.favorites_count,
+        )

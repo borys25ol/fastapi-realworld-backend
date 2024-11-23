@@ -17,6 +17,15 @@ class ArticleRecordDTO:
 
 
 @dataclass(frozen=True)
+class ArticleAuthorDTO:
+    username: str
+    bio: str = ""
+    image: str | None = None
+    following: bool = False
+    id: int | None = None
+
+
+@dataclass(frozen=True)
 class ArticleDTO:
     id: int
     author_id: int
@@ -25,7 +34,7 @@ class ArticleDTO:
     description: str
     body: str
     tags: list[str]
-    author: ProfileDTO
+    author: ArticleAuthorDTO
     created_at: datetime.datetime
     updated_at: datetime.datetime
     favorited: bool
