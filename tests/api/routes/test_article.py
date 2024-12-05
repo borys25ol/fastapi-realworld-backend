@@ -139,3 +139,66 @@ async def test_user_can_delete_own_article(
 
     response = await authorized_test_client.get(url=f"/articles/{test_article.slug}")
     assert response.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_user_can_create_draft(
+    authorized_test_client: AsyncClient,
+) -> None:
+    payload = {
+        "article": {
+            "title": "Draft Article",
+            "body": "draft body",
+            "description": "draft description",
+            "tagList": ["draft"],
+        }
+    }
+    response = await authorized_test_client.post("/articles/draft", json=payload)
+    assert response.status_code == 200
+    data = response.json()["article"]
+    assert data["title"] == "Draft Article"
+
+
+@pytest.mark.anyio
+async def test_only_author_can_see_draft(
+    authorized_test_client: AsyncClient,
+    another_authorized_client: AsyncClient,
+    test_article: ArticleDTO,
+) -> None:
+    # Create draft with first user
+    payload = {
+        "article": {
+            "title": "Draft Article",
+            "body": "draft body",
+            "description": "draft description",
+            "tagList": ["draft"],
+        }
+    }
+    response = await authorized_test_client.post("/articles/draft", json=payload)
+    slug = response.json()["article"]["slug"]
+    
+    # Try to access with another user
+    response = await another_authorized_client.get(f"/articles/{slug}")
+    assert response.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_draft_excluded_from_feed(
+    authorized_test_client: AsyncClient,
+) -> None:
+    # Create draft
+    payload = {
+        "article": {
+            "title": "Draft Article",
+            "body": "draft body",
+            "description": "draft description",
+            "tagList": ["draft"],
+        }
+    }
+    await authorized_test_client.post("/articles/draft", json=payload)
+    
+    # Check global feed
+    response = await authorized_test_client.get("/articles")
+    articles = response.json()["articles"]
+    titles = [article["title"] for article in articles]
+    assert "Draft Article" not in titles

@@ -66,3 +66,22 @@ class UpdateArticleDTO:
     title: str | None
     description: str | None
     body: str | None
+
+
+@dataclass
+class ArticleVersionDTO:
+    id: int
+    article_id: int
+    version: int
+    title: str
+    description: str
+    body: str
+    created_at: datetime
+
+
+@dataclass
+class CreateDraftDTO:
+    title: str
+    description: str
+    body: str
+    tags: list[str]

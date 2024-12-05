@@ -18,6 +18,7 @@ from conduit.domain.dtos.article import (
     ArticleRecordDTO,
     CreateArticleDTO,
     UpdateArticleDTO,
+    ArticleVersionDTO,
 )
 from conduit.domain.mapper import IModelMapper
 from conduit.domain.repositories.article import IArticleRepository
@@ -28,6 +29,7 @@ from conduit.infrastructure.models import (
     Follower,
     Tag,
     User,
+    ArticleVersion,
 )
 
 # Aliases for the models if needed.
@@ -271,7 +273,6 @@ class ArticleRepository(IArticleRepository):
         favorited: str | None = None,
     ) -> list[ArticleDTO]:
         query = (
-            # fmt: off
             select(
                 Article.id.label("id"),
                 Article.author_id.label("author_id"),
@@ -313,6 +314,7 @@ class ArticleRepository(IArticleRepository):
             .outerjoin(FavoriteAlias, FavoriteAlias.article_id == Article.id)
             .outerjoin(Tag, Tag.id == ArticleTag.tag_id)
             .filter(
+                Article.is_draft == False,
                 # Filter by author username if provided.
                 case((author is not None, User.username == author), else_=True),
                 # Filter by tag if provided.
@@ -343,7 +345,6 @@ class ArticleRepository(IArticleRepository):
                 User.email,
                 User.image_url,
             )
-            # fmt: on
         )
 
         query = query.limit(limit).offset(offset)
@@ -406,6 +407,128 @@ class ArticleRepository(IArticleRepository):
 
         result = await session.execute(query)
         return result.scalar()
+
+    async def add_draft(
+        self, session: AsyncSession, author_id: int, create_item: CreateArticleDTO
+    ) -> ArticleRecordDTO:
+        now = datetime.now()
+        slug = make_slug_from_title(create_item.title)
+        
+        # Insert the article
+        article_query = (
+            insert(Article)
+            .values(
+                author_id=author_id,
+                slug=slug,
+                title=create_item.title,
+                description=create_item.description,
+                body=create_item.body,
+                created_at=now,
+                updated_at=now,
+                is_draft=True,
+                current_version=1,
+            )
+            .returning(Article)
+        )
+        result = await session.execute(article_query)
+        article = result.scalar_one()
+        
+        # Create initial version
+        version_query = insert(ArticleVersion).values(
+            article_id=article.id,
+            version=1,
+            title=create_item.title,
+            description=create_item.description,
+            body=create_item.body,
+            created_at=now,
+        )
+        await session.execute(version_query)
+        
+        return ArticleRecordDTO(
+            id=article.id,
+            author_id=article.author_id,
+            slug=article.slug,
+            title=article.title,
+            description=article.description,
+            body=article.body,
+            created_at=article.created_at,
+            updated_at=article.updated_at,
+        )
+
+    async def publish_draft(
+        self, session: AsyncSession, slug: str, author_id: int
+    ) -> ArticleRecordDTO:
+        query = (
+            update(Article)
+            .where(Article.slug == slug, Article.author_id == author_id)
+            .values(is_draft=False, updated_at=datetime.now())
+            .returning(Article)
+        )
+        result = await session.execute(query)
+        article = result.scalar_one_or_none()
+        if not article:
+            raise ArticleNotFoundException()
+        
+        return ArticleRecordDTO(
+            id=article.id,
+            author_id=article.author_id,
+            slug=article.slug,
+            title=article.title,
+            description=article.description,
+            body=article.body,
+            created_at=article.created_at,
+            updated_at=article.updated_at,
+        )
+
+    async def get_versions(
+        self, session: AsyncSession, slug: str, author_id: int
+    ) -> list[ArticleVersionDTO]:
+        query = (
+            select(ArticleVersion)
+            .join(Article)
+            .where(
+                Article.slug == slug,
+                Article.author_id == author_id
+            )
+            .order_by(ArticleVersion.version.desc())
+        )
+        result = await session.execute(query)
+        versions = result.scalars().all()
+        
+        return [
+            ArticleVersionDTO(
+                id=version.id,
+                article_id=version.article_id,
+                version=version.version,
+                title=version.title,
+                description=version.description,
+                body=version.body,
+                created_at=version.created_at,
+            )
+            for version in versions
+        ]
+
+    async def list_drafts(
+        self, session: AsyncSession, author_id: int, limit: int, offset: int
+    ) -> list[ArticleDTO]:
+        query = (
+            select(Article)
+            .where(
+                Article.author_id == author_id,
+                Article.is_draft == True
+            )
+            .order_by(Article.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await session.execute(query)
+        articles = result.scalars().all()
+        
+        return await self._get_articles_with_relations(
+            session=session,
+            articles=articles,
+            user_id=author_id
+        )
 
     @staticmethod
     def _to_article_dto(res: Any) -> ArticleDTO:

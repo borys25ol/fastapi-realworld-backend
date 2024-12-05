@@ -3,7 +3,7 @@ import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from conduit.core.utils.date import convert_datetime_to_realworld
-from conduit.domain.dtos.article import ArticleDTO, ArticlesFeedDTO
+from conduit.domain.dtos.article import ArticleDTO, ArticlesFeedDTO, ArticleVersionDTO
 
 
 class ArticleAuthorData(BaseModel):
@@ -66,3 +66,38 @@ class ArticlesFeedResponse(BaseModel):
             for article_dto in dto.articles
         ]
         return ArticlesFeedResponse(articles=articles, articlesCount=dto.articles_count)
+
+
+class ArticleVersionData(BaseModel):
+    id: int
+    article_id: int
+    version: int
+    title: str
+    description: str
+    body: str
+    created_at: datetime.datetime = Field(alias="createdAt")
+
+    model_config = ConfigDict(
+        json_encoders={datetime.datetime: convert_datetime_to_realworld}
+    )
+
+
+class ArticleVersionsResponse(BaseModel):
+    versions: list[ArticleVersionData]
+
+    @classmethod
+    def from_dto(cls, versions: list[ArticleVersionDTO]) -> "ArticleVersionsResponse":
+        return cls(
+            versions=[
+                ArticleVersionData(
+                    id=v.id,
+                    article_id=v.article_id,
+                    version=v.version,
+                    title=v.title,
+                    description=v.description,
+                    body=v.body,
+                    createdAt=v.created_at,
+                )
+                for v in versions
+            ]
+        )

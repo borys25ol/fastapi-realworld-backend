@@ -6,6 +6,7 @@ from conduit.domain.dtos.article import (
     ArticleRecordDTO,
     CreateArticleDTO,
     UpdateArticleDTO,
+    ArticleVersionDTO,
 )
 
 
@@ -77,3 +78,23 @@ class IArticleRepository(abc.ABC):
         author: str | None = None,
         favorited: str | None = None,
     ) -> int: ...
+
+    @abc.abstractmethod
+    async def add_draft(
+        self, session: Any, author_id: int, create_item: CreateArticleDTO
+    ) -> ArticleRecordDTO: ...
+
+    @abc.abstractmethod
+    async def publish_draft(
+        self, session: Any, slug: str, author_id: int
+    ) -> ArticleRecordDTO: ...
+
+    @abc.abstractmethod
+    async def get_versions(
+        self, session: Any, slug: str, author_id: int
+    ) -> list[ArticleVersionDTO]: ...
+
+    @abc.abstractmethod
+    async def list_drafts(
+        self, session: Any, author_id: int, limit: int, offset: int
+    ) -> list[ArticleDTO]: ...

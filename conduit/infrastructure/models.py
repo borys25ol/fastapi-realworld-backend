@@ -46,6 +46,13 @@ class Article(Base):
     body: Mapped[str]
     created_at: Mapped[datetime]
     updated_at: Mapped[datetime] = mapped_column(nullable=True)
+    is_draft: Mapped[bool] = mapped_column(default=False)
+    current_version: Mapped[int] = mapped_column(default=1)
+    versions: Mapped[list["ArticleVersion"]] = relationship(
+        "ArticleVersion", 
+        back_populates="article", 
+        cascade="all, delete-orphan"
+    )
 
 
 class Tag(Base):
@@ -87,3 +94,17 @@ class Comment(Base):
     body: Mapped[str]
     created_at: Mapped[datetime]
     updated_at: Mapped[datetime] = mapped_column(nullable=True)
+
+
+class ArticleVersion(Base):
+    __tablename__ = "article_versions"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    article_id: Mapped[int] = mapped_column(ForeignKey("article.id", ondelete="CASCADE"))
+    version: Mapped[int] = mapped_column(nullable=False)
+    title: Mapped[str] = mapped_column(nullable=False)
+    description: Mapped[str] = mapped_column(nullable=False)
+    body: Mapped[str] = mapped_column(nullable=False)
+    created_at: Mapped[datetime]
+    
+    article: Mapped["Article"] = relationship("Article", back_populates="versions")

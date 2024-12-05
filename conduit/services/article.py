@@ -14,6 +14,7 @@ from conduit.domain.dtos.article import (
     ArticlesFeedDTO,
     CreateArticleDTO,
     UpdateArticleDTO,
+    ArticleVersionDTO,
 )
 from conduit.domain.dtos.profile import ProfileDTO
 from conduit.domain.dtos.user import UserDTO
@@ -294,3 +295,75 @@ class ArticleService(IArticleService):
             current_user=current_user,
         )
         return {profile.user_id: profile for profile in following_profiles}
+
+    async def create_draft(
+        self,
+        session: AsyncSession,
+        author_id: int,
+        draft_to_create: CreateArticleDTO,
+    ) -> ArticleDTO:
+        article = await self._article_repo.add_draft(
+            session=session, author_id=author_id, create_item=draft_to_create
+        )
+        profile = await self._profile_service.get_profile_by_user_id(
+            session=session, user_id=author_id
+        )
+        if draft_to_create.tags:
+            await self._article_tag_repo.add_many(
+                session=session, article_id=article.id, tags=draft_to_create.tags
+            )
+        return await self._get_article_info(
+            session=session, article=article, profile=profile, user_id=author_id
+        )
+
+    async def publish_draft(
+        self,
+        session: AsyncSession,
+        slug: str,
+        current_user: UserDTO,
+    ) -> ArticleDTO:
+        article = await self._article_repo.get_by_slug(session=session, slug=slug)
+        
+        if article.author_id != current_user.id:
+            raise ArticlePermissionException()
+        
+        article = await self._article_repo.publish_draft(
+            session=session, slug=slug, author_id=current_user.id
+        )
+        profile = await self._profile_service.get_profile_by_user_id(
+            session=session, user_id=article.author_id, current_user=current_user
+        )
+        return await self._get_article_info(
+            session=session, article=article, profile=profile, user_id=current_user.id
+        )
+
+    async def get_article_versions(
+        self,
+        session: AsyncSession,
+        slug: str,
+        current_user: UserDTO,
+    ) -> list[ArticleVersionDTO]:
+        article = await self._article_repo.get_by_slug(session=session, slug=slug)
+        
+        if article.author_id != current_user.id:
+            raise ArticlePermissionException()
+        
+        return await self._article_repo.get_versions(
+            session=session, slug=slug, author_id=current_user.id
+        )
+
+    async def list_user_drafts(
+        self,
+        session: AsyncSession,
+        current_user: UserDTO,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> ArticlesFeedDTO:
+        articles = await self._article_repo.list_drafts(
+            session=session,
+            author_id=current_user.id,
+            limit=limit,
+            offset=offset
+        )
+        count = len(articles)  # For drafts, we can use the actual list length
+        return ArticlesFeedDTO(articles=articles, articles_count=count)

@@ -6,6 +6,7 @@ from conduit.domain.dtos.article import (
     ArticlesFeedDTO,
     CreateArticleDTO,
     UpdateArticleDTO,
+    ArticleVersionDTO,
 )
 from conduit.domain.dtos.user import UserDTO
 
@@ -79,3 +80,36 @@ class IArticleService(abc.ABC):
     async def remove_article_from_favorites(
         self, session: Any, slug: str, current_user: UserDTO
     ) -> ArticleDTO: ...
+
+    @abc.abstractmethod
+    async def create_draft(
+        self,
+        session: Any,
+        author_id: int,
+        draft_to_create: CreateArticleDTO,
+    ) -> ArticleDTO: ...
+
+    @abc.abstractmethod
+    async def publish_draft(
+        self,
+        session: Any,
+        slug: str,
+        current_user: UserDTO,
+    ) -> ArticleDTO: ...
+
+    @abc.abstractmethod
+    async def get_article_versions(
+        self,
+        session: Any,
+        slug: str,
+        current_user: UserDTO,
+    ) -> list[ArticleVersionDTO]: ...
+
+    @abc.abstractmethod
+    async def list_user_drafts(
+        self,
+        session: Any,
+        current_user: UserDTO,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> ArticlesFeedDTO: ...
