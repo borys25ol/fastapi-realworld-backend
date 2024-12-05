@@ -176,11 +176,11 @@ async def create_draft(
 
 @router.get("/drafts", response_model=ArticlesFeedResponse)
 async def list_drafts(
-    limit: int = Query(DEFAULT_ARTICLES_LIMIT, ge=1),
-    offset: int = Query(DEFAULT_ARTICLES_OFFSET, ge=0),
     session: DBSession,
     current_user: CurrentUser,
     article_service: IArticleService,
+    limit: int = Query(DEFAULT_ARTICLES_LIMIT, ge=1),
+    offset: int = Query(DEFAULT_ARTICLES_OFFSET, ge=0),
 ) -> ArticlesFeedResponse:
     """List user's draft articles."""
     feed_dto = await article_service.list_user_drafts(
