@@ -73,6 +73,26 @@ async def test_user_can_create_article_with_existing_title(
 
 
 @pytest.mark.anyio
+async def test_user_can_retrieve_article_without_tags(
+    authorized_test_client: AsyncClient,
+) -> None:
+    payload = {
+        "article": {
+            "title": "Test Article",
+            "body": "test body",
+            "description": "test description",
+            "tagList": [],
+        }
+    }
+    response = await authorized_test_client.post(url="/articles", json=payload)
+    assert response.status_code == 200
+
+    article = ArticleResponse(**response.json())
+    response = await authorized_test_client.get(url=f"/articles/{article.article.slug}")
+    assert response.status_code == 200
+
+
+@pytest.mark.anyio
 async def test_user_can_not_retrieve_not_existing_article(
     authorized_test_client: AsyncClient,
 ) -> None:

@@ -416,7 +416,7 @@ class ArticleRepository(IArticleRepository):
             title=res.title,
             description=res.description,
             body=res.body,
-            tags=res.tags,
+            tags=res.tags.split(", ") if res.tags else [],
             author=ArticleAuthorDTO(
                 username=res.username,
                 bio=res.bio,
