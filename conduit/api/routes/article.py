@@ -1,10 +1,7 @@
 from fastapi import APIRouter
-from fastapi.params import Query
 from starlette import status
 
 from conduit.api.schemas.requests.article import (
-    DEFAULT_ARTICLES_LIMIT,
-    DEFAULT_ARTICLES_OFFSET,
     CreateArticleRequest,
     UpdateArticleRequest,
 )
@@ -14,6 +11,7 @@ from conduit.core.dependencies import (
     CurrentUser,
     DBSession,
     IArticleService,
+    Pagination,
     QueryFilters,
 )
 
@@ -22,23 +20,26 @@ router = APIRouter()
 
 @router.get("/feed", response_model=ArticlesFeedResponse)
 async def get_article_feed(
+    pagination: Pagination,
     session: DBSession,
     current_user: CurrentUser,
     article_service: IArticleService,
-    limit: int = Query(DEFAULT_ARTICLES_LIMIT, ge=1),
-    offset: int = Query(DEFAULT_ARTICLES_OFFSET, ge=0),
 ) -> ArticlesFeedResponse:
     """
     Get article feed from following users.
     """
     articles_feed_dto = await article_service.get_articles_feed_v2(
-        session=session, current_user=current_user, limit=limit, offset=offset
+        session=session,
+        current_user=current_user,
+        limit=pagination.limit,
+        offset=pagination.offset,
     )
     return ArticlesFeedResponse.from_dto(dto=articles_feed_dto)
 
 
 @router.get("", response_model=ArticlesFeedResponse)
 async def get_global_article_feed(
+    pagination: Pagination,
     articles_filters: QueryFilters,
     session: DBSession,
     current_user: CurrentOptionalUser,
@@ -53,8 +54,8 @@ async def get_global_article_feed(
         tag=articles_filters.tag,
         author=articles_filters.author,
         favorited=articles_filters.favorited,
-        limit=articles_filters.limit,
-        offset=articles_filters.offset,
+        limit=pagination.limit,
+        offset=pagination.offset,
     )
     return ArticlesFeedResponse.from_dto(dto=articles_feed_dto)
 
