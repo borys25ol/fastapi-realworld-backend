@@ -170,8 +170,8 @@ class ArticleRepository(IArticleRepository):
                 func.string_agg(Tag.tag, ", ").label("tags"),
             )
             .join(User, Article.author_id == User.id)
-            .join(ArticleTag, Article.id == ArticleTag.article_id)
-            .join(Tag, Tag.id == ArticleTag.tag_id)
+            .join(ArticleTag, Article.id == ArticleTag.article_id, isouter=True)
+            .join(Tag, Tag.id == ArticleTag.tag_id, isouter=True)
             .filter(
                 User.id.in_(
                     select(Follower.following_id)
