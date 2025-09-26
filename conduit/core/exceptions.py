@@ -1,8 +1,12 @@
+from typing import Any
+
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+
+from conduit.core.utils.errors import format_errors
 
 
 class BaseInternalException(Exception):
@@ -12,12 +16,13 @@ class BaseInternalException(Exception):
 
     _status_code = 0
     _message = ""
+    _errors: dict = {}
 
     def __init__(
         self,
         status_code: int | None = None,
         message: str | None = None,
-        errors: list[str] | None = None,
+        errors: dict[str, dict[Any, Any]] | None = None,
     ) -> None:
         self.status_code = status_code
         self.message = message
@@ -29,6 +34,9 @@ class BaseInternalException(Exception):
     def get_message(self) -> str:
         return self.message or self._message
 
+    def get_errors(self) -> dict[str, dict[Any, Any]]:
+        return self.errors or self._errors
+
     @classmethod
     def get_response(cls) -> JSONResponse:
         return JSONResponse(
@@ -38,6 +46,7 @@ class BaseInternalException(Exception):
                 "status_code": cls._status_code,
                 "type": cls.__name__,
                 "message": cls._message,
+                "errors": cls._errors,
             },
         )
 
@@ -96,6 +105,7 @@ class EmailAlreadyTakenException(BaseInternalException):
 
     _status_code = 400
     _message = "User with this email already exists."
+    _errors = {"email": ["user with this email already exists."]}
 
 
 class UserNameAlreadyTakenException(BaseInternalException):
@@ -103,6 +113,7 @@ class UserNameAlreadyTakenException(BaseInternalException):
 
     _status_code = 400
     _message = "User with this username already exists."
+    _errors = {"username": ["user with this username already exists."]}
 
 
 class IncorrectLoginInputException(BaseInternalException):
@@ -110,6 +121,10 @@ class IncorrectLoginInputException(BaseInternalException):
 
     _status_code = 400
     _message = "Incorrect email or password."
+    _errors = {
+        "email": ["incorrect email or password."],
+        "password": ["incorrect email or password."],
+    }
 
 
 class IncorrectJWTTokenException(BaseInternalException):
@@ -170,6 +185,7 @@ def add_internal_exception_handler(app: FastAPI) -> None:
                 "status_code": exc.get_status_code(),
                 "type": type(exc).__name__,
                 "message": exc.get_message(),
+                "errors": exc.get_errors(),
             },
         )
 
@@ -190,7 +206,7 @@ def add_request_exception_handler(app: FastAPI) -> None:
                 "status_code": 422,
                 "type": "RequestValidationError",
                 "message": "Schema validation error",
-                "errors": exc.errors(),
+                "errors": format_errors(errors=exc.errors()),
             },
         )
 

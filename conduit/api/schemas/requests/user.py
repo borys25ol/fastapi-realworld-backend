@@ -1,17 +1,17 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 from conduit.domain.dtos.user import CreateUserDTO, LoginUserDTO, UpdateUserDTO
 
 
 class UserRegistrationData(BaseModel):
-    email: str
-    password: str
-    username: str
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    username: str = Field(..., min_length=3)
 
 
 class UserLoginData(BaseModel):
-    email: str
-    password: str
+    email: EmailStr
+    password: str = Field(..., min_length=8)
 
 
 class UserUpdateData(BaseModel):
