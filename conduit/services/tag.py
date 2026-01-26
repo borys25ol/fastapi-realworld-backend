@@ -1,4 +1,5 @@
-from conduit.domain.dtos.tag import TagDTO, TagRecordDTO
+from conduit.domain.dtos.tag import TagDTO
+from conduit.domain.entities.tag import Tag
 from conduit.domain.services.tag import ITagService
 from conduit.domain.uow import IUnitOfWork
 
@@ -11,5 +12,5 @@ class TagService(ITagService):
         return [self._to_tag_dto(tag) for tag in tags]
 
     @staticmethod
-    def _to_tag_dto(record: TagRecordDTO) -> TagDTO:
-        return TagDTO(id=record.id, tag=record.tag, created_at=record.created_at)
+    def _to_tag_dto(tag: Tag) -> TagDTO:
+        return TagDTO(id=tag.id, tag=tag.tag, created_at=tag.created_at)

@@ -1,22 +1,16 @@
-from dataclasses import asdict
-
-from conduit.core.exceptions import (
-    ArticleAlreadyFavoritedException,
-    ArticleCreateException,
-    ArticleNotFavoritedException,
-    ArticlePermissionException,
-)
+from conduit.core.exceptions import ArticleCreateException
 from conduit.domain.dtos.article import (
     ArticleAuthorDTO,
     ArticleDTO,
     ArticleFeedRecordDTO,
-    ArticleRecordDTO,
     ArticlesFeedDTO,
     CreateArticleDTO,
     UpdateArticleDTO,
 )
 from conduit.domain.dtos.profile import ProfileDTO
 from conduit.domain.dtos.user import UserDTO
+from conduit.domain.entities.article import Article
+from conduit.domain.entities.favorite import Favorite
 from conduit.domain.services.article import IArticleService
 from conduit.domain.services.profile import IProfileService
 from conduit.domain.uow import IUnitOfWork
@@ -45,7 +39,12 @@ class ArticleService(IArticleService):
                 article_id=article.id, tags=article_to_create.tags
             )
         return ArticleDTO(
-            **asdict(article),
+            id=article.id,
+            author_id=article.author_id,
+            slug=article.slug,
+            title=article.title,
+            description=article.description,
+            body=article.body,
             author=ArticleAuthorDTO(
                 username=profile.username,
                 bio=profile.bio,
@@ -55,6 +54,8 @@ class ArticleService(IArticleService):
             tags=article_to_create.tags,
             favorited=False,
             favorites_count=0,
+            created_at=article.created_at,
+            updated_at=article.updated_at or article.created_at,
         )
 
     async def get_article_by_slug(
@@ -76,8 +77,7 @@ class ArticleService(IArticleService):
     ) -> None:
         article = await uow.articles.get_by_slug(slug=slug)
 
-        if article.author_id != current_user.id:
-            raise ArticlePermissionException()
+        article.assert_owner(user_id=current_user.id)
 
         await uow.articles.delete_by_slug(slug=slug)
 
@@ -90,8 +90,7 @@ class ArticleService(IArticleService):
     ) -> ArticleDTO:
         article = await uow.articles.get_by_slug(slug=slug)
 
-        if article.author_id != current_user.id:
-            raise ArticlePermissionException()
+        article.assert_owner(user_id=current_user.id)
 
         article = await uow.articles.update_by_slug(
             slug=slug, update_item=article_to_update
@@ -151,8 +150,12 @@ class ArticleService(IArticleService):
         article = await self.get_article_by_slug(
             uow=uow, slug=slug, current_user=current_user
         )
-        if article.favorited:
-            raise ArticleAlreadyFavoritedException()
+        favorite = Favorite(
+            user_id=current_user.id,
+            article_id=article.id,
+            created_at=article.updated_at or article.created_at,
+        )
+        favorite.assert_not_favorited(is_favorited=article.favorited)
 
         await uow.favorites.create(article_id=article.id, user_id=current_user.id)
         return ArticleDTO.with_updated_fields(
@@ -168,8 +171,12 @@ class ArticleService(IArticleService):
         article = await self.get_article_by_slug(
             uow=uow, slug=slug, current_user=current_user
         )
-        if not article.favorited:
-            raise ArticleNotFavoritedException()
+        favorite = Favorite(
+            user_id=current_user.id,
+            article_id=article.id,
+            created_at=article.updated_at or article.created_at,
+        )
+        favorite.assert_favorited(is_favorited=article.favorited)
 
         await uow.favorites.delete(article_id=article.id, user_id=current_user.id)
         return ArticleDTO.with_updated_fields(
@@ -182,7 +189,7 @@ class ArticleService(IArticleService):
     async def _get_article_info(
         self,
         uow: IUnitOfWork,
-        article: ArticleRecordDTO,
+        article: Article,
         profile: ProfileDTO,
         user_id: int | None = None,
     ) -> ArticleDTO:
@@ -196,7 +203,12 @@ class ArticleService(IArticleService):
             else False
         )
         return ArticleDTO(
-            **asdict(article),
+            id=article.id,
+            author_id=article.author_id,
+            slug=article.slug,
+            title=article.title,
+            description=article.description,
+            body=article.body,
             author=ArticleAuthorDTO(
                 username=profile.username,
                 bio=profile.bio,
@@ -206,20 +218,9 @@ class ArticleService(IArticleService):
             tags=article_tags,
             favorited=is_favorited_by_user,
             favorites_count=favorites_count,
+            created_at=article.created_at,
+            updated_at=article.updated_at or article.created_at,
         )
-
-    async def _get_profiles_mapping(
-        self,
-        uow: IUnitOfWork,
-        articles: list[ArticleRecordDTO],
-        current_user: UserDTO | None,
-    ) -> dict[int, ProfileDTO]:
-        following_profiles = await self._profile_service.get_profiles_by_user_ids(
-            uow=uow,
-            user_ids=[article.author_id for article in articles],
-            current_user=current_user,
-        )
-        return {profile.user_id: profile for profile in following_profiles}
 
     @staticmethod
     def _to_article_dto_from_feed_record(record: ArticleFeedRecordDTO) -> ArticleDTO:

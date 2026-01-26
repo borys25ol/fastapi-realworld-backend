@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.functions import count
 
 from conduit.core.exceptions import CommentNotFoundException
-from conduit.domain.dtos.comment import CommentRecordDTO, CreateCommentDTO
+from conduit.domain.dtos.comment import CreateCommentDTO
+from conduit.domain.entities.comment import Comment as CommentEntity
 from conduit.domain.repositories.comment import ICommentRepository
 from conduit.infrastructure.models import Comment
 
@@ -15,8 +16,8 @@ class CommentRepository(ICommentRepository):
         self._session = session
 
     @staticmethod
-    def _to_comment_record_dto(model: Comment) -> CommentRecordDTO:
-        return CommentRecordDTO(
+    def _to_comment_entity(model: Comment) -> CommentEntity:
+        return CommentEntity(
             id=model.id,
             body=model.body,
             author_id=model.author_id,
@@ -27,7 +28,7 @@ class CommentRepository(ICommentRepository):
 
     async def add(
         self, author_id: int, article_id: int, create_item: CreateCommentDTO
-    ) -> CommentRecordDTO:
+    ) -> CommentEntity:
         query = (
             insert(Comment)
             .values(
@@ -40,23 +41,23 @@ class CommentRepository(ICommentRepository):
             .returning(Comment)
         )
         result = await self._session.execute(query)
-        return self._to_comment_record_dto(result.scalar_one())
+        return self._to_comment_entity(result.scalar_one())
 
-    async def get_or_none(self, comment_id: int) -> CommentRecordDTO | None:
+    async def get_or_none(self, comment_id: int) -> CommentEntity | None:
         query = select(Comment).where(Comment.id == comment_id)
         if comment := await self._session.scalar(query):
-            return self._to_comment_record_dto(comment)
+            return self._to_comment_entity(comment)
 
-    async def get(self, comment_id: int) -> CommentRecordDTO:
+    async def get(self, comment_id: int) -> CommentEntity:
         query = select(Comment).where(Comment.id == comment_id)
         if not (comment := await self._session.scalar(query)):
             raise CommentNotFoundException()
-        return self._to_comment_record_dto(comment)
+        return self._to_comment_entity(comment)
 
-    async def list(self, article_id: int) -> list[CommentRecordDTO]:
+    async def list(self, article_id: int) -> list[CommentEntity]:
         query = select(Comment).where(Comment.article_id == article_id)
         comments = await self._session.scalars(query)
-        return [self._to_comment_record_dto(comment) for comment in comments]
+        return [self._to_comment_entity(comment) for comment in comments]
 
     async def delete(self, comment_id: int) -> None:
         query = delete(Comment).where(Comment.id == comment_id)

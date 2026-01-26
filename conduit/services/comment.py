@@ -1,12 +1,8 @@
-from conduit.core.exceptions import CommentCreateException, CommentPermissionException
-from conduit.domain.dtos.comment import (
-    CommentDTO,
-    CommentRecordDTO,
-    CommentsListDTO,
-    CreateCommentDTO,
-)
+from conduit.core.exceptions import CommentCreateException
+from conduit.domain.dtos.comment import CommentDTO, CommentsListDTO, CreateCommentDTO
 from conduit.domain.dtos.profile import ProfileDTO
 from conduit.domain.dtos.user import UserDTO
+from conduit.domain.entities.comment import Comment
 from conduit.domain.services.comment import ICommentService
 from conduit.domain.services.profile import IProfileService
 from conduit.domain.uow import IUnitOfWork
@@ -32,7 +28,7 @@ class CommentService(ICommentService):
             following=False,
         )
         try:
-            comment_record_dto = await uow.comments.add(
+            comment = await uow.comments.add(
                 author_id=current_user.id,
                 article_id=article.id,
                 create_item=comment_to_create,
@@ -40,30 +36,30 @@ class CommentService(ICommentService):
         except Exception as exc:
             raise CommentCreateException() from exc
         return CommentDTO(
-            id=comment_record_dto.id,
-            body=comment_record_dto.body,
+            id=comment.id,
+            body=comment.body,
             author=profile,
-            created_at=comment_record_dto.created_at,
-            updated_at=comment_record_dto.updated_at,
+            created_at=comment.created_at,
+            updated_at=comment.updated_at or comment.created_at,
         )
 
     async def get_article_comments(
         self, uow: IUnitOfWork, slug: str, current_user: UserDTO | None = None
     ) -> CommentsListDTO:
         article = await uow.articles.get_by_slug(slug=slug)
-        comment_records = await uow.comments.list(article_id=article.id)
+        comments = await uow.comments.list(article_id=article.id)
         profiles_map = await self._get_profiles_mapping(
-            uow=uow, comments=comment_records, current_user=current_user
+            uow=uow, comments=comments, current_user=current_user
         )
         comments = [
             CommentDTO(
-                id=comment_record_dto.id,
-                body=comment_record_dto.body,
-                author=profiles_map[comment_record_dto.author_id],
-                created_at=comment_record_dto.created_at,
-                updated_at=comment_record_dto.updated_at,
+                id=comment_entity.id,
+                body=comment_entity.body,
+                author=profiles_map[comment_entity.author_id],
+                created_at=comment_entity.created_at,
+                updated_at=comment_entity.updated_at or comment_entity.created_at,
             )
-            for comment_record_dto in comment_records
+            for comment_entity in comments
         ]
         comments_count = await uow.comments.count(article_id=article.id)
         return CommentsListDTO(comments=comments, comments_count=comments_count)
@@ -75,16 +71,12 @@ class CommentService(ICommentService):
         await uow.articles.get_by_slug(slug=slug)
 
         comment = await uow.comments.get(comment_id=comment_id)
-        if comment.author_id != current_user.id:
-            raise CommentPermissionException()
+        comment.assert_owner(user_id=current_user.id)
 
         await uow.comments.delete(comment_id=comment_id)
 
     async def _get_profiles_mapping(
-        self,
-        uow: IUnitOfWork,
-        comments: list[CommentRecordDTO],
-        current_user: UserDTO | None,
+        self, uow: IUnitOfWork, comments: list[Comment], current_user: UserDTO | None
     ) -> dict[int, ProfileDTO]:
         comments_profiles = await self._profile_service.get_profiles_by_user_ids(
             uow=uow,

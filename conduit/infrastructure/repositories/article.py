@@ -14,10 +14,10 @@ from conduit.core.utils.slug import (
 )
 from conduit.domain.dtos.article import (
     ArticleFeedRecordDTO,
-    ArticleRecordDTO,
     CreateArticleDTO,
     UpdateArticleDTO,
 )
+from conduit.domain.entities.article import Article as ArticleEntity
 from conduit.domain.repositories.article import IArticleRepository
 from conduit.infrastructure.models import (
     Article,
@@ -37,8 +37,8 @@ class ArticleRepository(IArticleRepository):
         self._session = session
 
     @staticmethod
-    def _to_article_record_dto(model: Article) -> ArticleRecordDTO:
-        return ArticleRecordDTO(
+    def _to_article_entity(model: Article) -> ArticleEntity:
+        return ArticleEntity(
             id=model.id,
             author_id=model.author_id,
             slug=model.slug,
@@ -70,9 +70,7 @@ class ArticleRepository(IArticleRepository):
             favorites_count=res.favorites_count,
         )
 
-    async def add(
-        self, author_id: int, create_item: CreateArticleDTO
-    ) -> ArticleRecordDTO:
+    async def add(self, author_id: int, create_item: CreateArticleDTO) -> ArticleEntity:
         query = (
             insert(Article)
             .values(
@@ -87,24 +85,24 @@ class ArticleRepository(IArticleRepository):
             .returning(Article)
         )
         result = await self._session.execute(query)
-        return self._to_article_record_dto(result.scalar_one())
+        return self._to_article_entity(result.scalar_one())
 
-    async def get_by_slug_or_none(self, slug: str) -> ArticleRecordDTO | None:
+    async def get_by_slug_or_none(self, slug: str) -> ArticleEntity | None:
         slug_unique_part = get_slug_unique_part(slug=slug)
         query = select(Article).where(
             Article.slug == slug or Article.slug.contains(slug_unique_part)
         )
         if article := await self._session.scalar(query):
-            return self._to_article_record_dto(article)
+            return self._to_article_entity(article)
 
-    async def get_by_slug(self, slug: str) -> ArticleRecordDTO:
+    async def get_by_slug(self, slug: str) -> ArticleEntity:
         slug_unique_part = get_slug_unique_part(slug=slug)
         query = select(Article).where(
             Article.slug == slug or Article.slug.contains(slug_unique_part)
         )
         if not (article := await self._session.scalar(query)):
             raise ArticleNotFoundException()
-        return self._to_article_record_dto(article)
+        return self._to_article_entity(article)
 
     async def delete_by_slug(self, slug: str) -> None:
         query = delete(Article).where(Article.slug == slug)
@@ -112,7 +110,7 @@ class ArticleRepository(IArticleRepository):
 
     async def update_by_slug(
         self, slug: str, update_item: UpdateArticleDTO
-    ) -> ArticleRecordDTO:
+    ) -> ArticleEntity:
         query = (
             update(Article)
             .where(Article.slug == slug)
@@ -132,7 +130,7 @@ class ArticleRepository(IArticleRepository):
         article = await self._session.scalar(query)
         if article is None:
             raise ArticleNotFoundException()
-        return self._to_article_record_dto(article)
+        return self._to_article_entity(article)
 
     async def list_by_followings(
         self, user_id: int, limit: int, offset: int

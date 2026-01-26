@@ -1,5 +1,6 @@
-from conduit.domain.dtos.article import ArticleRecordDTO, CreateArticleDTO
+from conduit.domain.dtos.article import CreateArticleDTO
 from conduit.domain.dtos.user import CreateUserDTO, UserDTO
+from conduit.domain.entities.article import Article
 from conduit.domain.services.user import IUserService
 from conduit.domain.uow import IUnitOfWork
 
@@ -13,9 +14,7 @@ async def create_another_test_user(
     return await user_service.create_user(uow=uow, user_to_create=create_user_dto)
 
 
-async def create_another_test_article(
-    uow: IUnitOfWork, author_id: int
-) -> ArticleRecordDTO:
+async def create_another_test_article(uow: IUnitOfWork, author_id: int) -> Article:
     create_article_dto = CreateArticleDTO(
         title="One More Test Article",
         description="Test Description",

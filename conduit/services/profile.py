@@ -1,14 +1,11 @@
+from datetime import datetime
+
 from structlog import get_logger
 
-from conduit.core.exceptions import (
-    OwnProfileFollowingException,
-    ProfileAlreadyFollowedException,
-    ProfileNotFollowedFollowedException,
-    ProfileNotFoundException,
-    UserNotFoundException,
-)
+from conduit.core.exceptions import ProfileNotFoundException, UserNotFoundException
 from conduit.domain.dtos.profile import ProfileDTO
 from conduit.domain.dtos.user import UserDTO
+from conduit.domain.entities.follow import Follow
 from conduit.domain.services.profile import IProfileService
 from conduit.domain.services.user import IUserService
 from conduit.domain.uow import IUnitOfWork
@@ -89,16 +86,20 @@ class ProfileService(IProfileService):
     async def follow_user(
         self, uow: IUnitOfWork, username: str, current_user: UserDTO
     ) -> None:
-        if username == current_user.username:
-            raise OwnProfileFollowingException()
-
         target_user = await self._user_service.get_user_by_username(
             uow=uow, username=username
         )
-        if await uow.followers.exists(
-            follower_id=current_user.id, following_id=target_user.id
-        ):
-            raise ProfileAlreadyFollowedException()
+        follow = Follow(
+            follower_id=current_user.id,
+            following_id=target_user.id,
+            created_at=datetime.now(),
+        )
+        follow.assert_not_self()
+        follow.assert_not_already_followed(
+            is_followed=await uow.followers.exists(
+                follower_id=current_user.id, following_id=target_user.id
+            )
+        )
 
         await uow.followers.create(
             follower_id=current_user.id, following_id=target_user.id
@@ -107,17 +108,20 @@ class ProfileService(IProfileService):
     async def unfollow_user(
         self, uow: IUnitOfWork, username: str, current_user: UserDTO
     ) -> None:
-        if username == current_user.username:
-            raise OwnProfileFollowingException()
-
         target_user = await self._user_service.get_user_by_username(
             uow=uow, username=username
         )
-        if not await uow.followers.exists(
+        follow = Follow(
+            follower_id=current_user.id,
+            following_id=target_user.id,
+            created_at=datetime.now(),
+        )
+        is_followed = await uow.followers.exists(
             follower_id=current_user.id, following_id=target_user.id
-        ):
+        )
+        if not is_followed:
             logger.exception("User not followed", username=username)
-            raise ProfileNotFollowedFollowedException()
+        follow.assert_followed(is_followed=is_followed)
 
         await uow.followers.delete(
             follower_id=current_user.id, following_id=target_user.id

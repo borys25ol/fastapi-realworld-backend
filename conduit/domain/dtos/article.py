@@ -1,20 +1,6 @@
 import datetime
 from dataclasses import dataclass, replace
 
-from conduit.domain.dtos.profile import ProfileDTO
-
-
-@dataclass(frozen=True)
-class ArticleRecordDTO:
-    id: int
-    author_id: int
-    slug: str
-    title: str
-    description: str
-    body: str
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
-
 
 @dataclass(frozen=True)
 class ArticleFeedRecordDTO:

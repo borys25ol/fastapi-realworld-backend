@@ -9,10 +9,11 @@ from conduit.core.exceptions import (
     CommentCreateException,
     UserCreateException,
 )
-from conduit.domain.dtos.article import ArticleRecordDTO, CreateArticleDTO
+from conduit.domain.dtos.article import CreateArticleDTO
 from conduit.domain.dtos.comment import CreateCommentDTO
 from conduit.domain.dtos.profile import ProfileDTO
 from conduit.domain.dtos.user import CreateUserDTO, UserDTO
+from conduit.domain.entities.article import Article
 from conduit.domain.repositories.article import IArticleRepository
 from conduit.domain.repositories.article_tag import IArticleTagRepository
 from conduit.domain.repositories.comment import ICommentRepository
@@ -28,7 +29,7 @@ from conduit.services.user import UserService
 
 
 class _FailingArticleRepo:
-    async def add(self, *_: object, **__: object) -> ArticleRecordDTO:
+    async def add(self, *_: object, **__: object) -> Article:
         raise RuntimeError("fail")
 
 
@@ -49,8 +50,8 @@ class _FailingCommentRepo:
 
 
 class _ArticleRepo:
-    async def get_by_slug(self, *_: object, **__: object) -> ArticleRecordDTO:
-        return ArticleRecordDTO(
+    async def get_by_slug(self, *_: object, **__: object) -> Article:
+        return Article(
             id=1,
             author_id=1,
             slug="article-slug",

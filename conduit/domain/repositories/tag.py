@@ -1,8 +1,8 @@
 import abc
 
-from conduit.domain.dtos.tag import TagRecordDTO
+from conduit.domain.entities.tag import Tag
 
 
 class ITagRepository(abc.ABC):
     @abc.abstractmethod
-    async def list(self) -> list[TagRecordDTO]: ...
+    async def list(self) -> list[Tag]: ...
