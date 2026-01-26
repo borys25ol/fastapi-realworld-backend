@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import Depends, Query
 
 from conduit.api.schemas.requests.article import ArticlesFilters, ArticlesPagination
+from conduit.application.dtos.user import UserDTO
 from conduit.core.providers import (
     get_article_service,
     get_auth_token_service,
@@ -14,7 +15,6 @@ from conduit.core.providers import (
     get_user_service,
 )
 from conduit.core.security import HTTPTokenHeader
-from conduit.domain.dtos.user import UserDTO
 from conduit.domain.uow import IUnitOfWork
 from conduit.services.article import ArticleService
 from conduit.services.auth import UserAuthService

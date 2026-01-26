@@ -1,10 +1,20 @@
+from datetime import datetime
+
+from conduit.application.dtos.comment import (
+    CommentDTO,
+    CommentsListDTO,
+    CreateCommentDTO,
+)
+from conduit.application.dtos.profile import ProfileDTO
+from conduit.application.dtos.user import UserDTO
+from conduit.application.mappers.comment_mapper import (
+    comments_to_list_dto,
+    entity_to_comment_dto,
+)
+from conduit.application.services.comment import ICommentService
+from conduit.application.services.profile import IProfileService
 from conduit.core.exceptions import CommentCreateException
-from conduit.domain.dtos.comment import CommentDTO, CommentsListDTO, CreateCommentDTO
-from conduit.domain.dtos.profile import ProfileDTO
-from conduit.domain.dtos.user import UserDTO
 from conduit.domain.entities.comment import Comment
-from conduit.domain.services.comment import ICommentService
-from conduit.domain.services.profile import IProfileService
 from conduit.domain.uow import IUnitOfWork
 
 
@@ -28,20 +38,18 @@ class CommentService(ICommentService):
             following=False,
         )
         try:
-            comment = await uow.comments.add(
+            new_comment = Comment(
+                id=0,
+                body=comment_to_create.body,
                 author_id=current_user.id,
                 article_id=article.id,
-                create_item=comment_to_create,
+                created_at=datetime.now(),
+                updated_at=None,
             )
+            comment = await uow.comments.add(new_comment)
         except Exception as exc:
             raise CommentCreateException() from exc
-        return CommentDTO(
-            id=comment.id,
-            body=comment.body,
-            author=profile,
-            created_at=comment.created_at,
-            updated_at=comment.updated_at or comment.created_at,
-        )
+        return entity_to_comment_dto(comment=comment, author=profile)
 
     async def get_article_comments(
         self, uow: IUnitOfWork, slug: str, current_user: UserDTO | None = None
@@ -52,17 +60,13 @@ class CommentService(ICommentService):
             uow=uow, comments=comments, current_user=current_user
         )
         comments = [
-            CommentDTO(
-                id=comment_entity.id,
-                body=comment_entity.body,
-                author=profiles_map[comment_entity.author_id],
-                created_at=comment_entity.created_at,
-                updated_at=comment_entity.updated_at or comment_entity.created_at,
+            entity_to_comment_dto(
+                comment=comment_entity, author=profiles_map[comment_entity.author_id]
             )
             for comment_entity in comments
         ]
         comments_count = await uow.comments.count(article_id=article.id)
-        return CommentsListDTO(comments=comments, comments_count=comments_count)
+        return comments_to_list_dto(comments=comments, comments_count=comments_count)
 
     async def delete_article_comment(
         self, uow: IUnitOfWork, slug: str, comment_id: int, current_user: UserDTO

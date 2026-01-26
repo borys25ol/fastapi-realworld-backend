@@ -2,8 +2,8 @@ import pytest
 from httpx import AsyncClient
 
 from conduit.api.schemas.responses.profile import ProfileResponse
-from conduit.domain.dtos.user import UserDTO
-from conduit.domain.services.user import IUserService
+from conduit.application.dtos.user import UserDTO
+from conduit.application.services.user import IUserService
 from conduit.domain.uow import IUnitOfWork
 from tests.utils import create_another_test_user
 

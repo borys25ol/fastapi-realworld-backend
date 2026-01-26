@@ -1,18 +1,25 @@
-from conduit.core.exceptions import ArticleCreateException
-from conduit.domain.dtos.article import (
-    ArticleAuthorDTO,
+from datetime import datetime
+
+from conduit.application.dtos.article import (
     ArticleDTO,
-    ArticleFeedRecordDTO,
     ArticlesFeedDTO,
     CreateArticleDTO,
     UpdateArticleDTO,
 )
-from conduit.domain.dtos.profile import ProfileDTO
-from conduit.domain.dtos.user import UserDTO
+from conduit.application.dtos.profile import ProfileDTO
+from conduit.application.dtos.user import UserDTO
+from conduit.application.mappers.article_mapper import (
+    entity_to_article_dto,
+    feed_record_to_article_dto,
+    feed_records_to_articles_dto,
+)
+from conduit.application.queries.article_feed import ArticleFeedRecordDTO
+from conduit.application.services.article import IArticleService
+from conduit.application.services.profile import IProfileService
+from conduit.core.exceptions import ArticleCreateException
+from conduit.core.utils.slug import make_slug_from_title
 from conduit.domain.entities.article import Article
 from conduit.domain.entities.favorite import Favorite
-from conduit.domain.services.article import IArticleService
-from conduit.domain.services.profile import IProfileService
 from conduit.domain.uow import IUnitOfWork
 
 
@@ -26,9 +33,17 @@ class ArticleService(IArticleService):
         self, uow: IUnitOfWork, author_id: int, article_to_create: CreateArticleDTO
     ) -> ArticleDTO:
         try:
-            article = await uow.articles.add(
-                author_id=author_id, create_item=article_to_create
+            article = Article(
+                id=0,
+                author_id=author_id,
+                slug=make_slug_from_title(title=article_to_create.title),
+                title=article_to_create.title,
+                description=article_to_create.description,
+                body=article_to_create.body,
+                created_at=datetime.now(),
+                updated_at=None,
             )
+            article = await uow.articles.add(article)
         except Exception as exc:
             raise ArticleCreateException() from exc
         profile = await self._profile_service.get_profile_by_user_id(
@@ -38,24 +53,12 @@ class ArticleService(IArticleService):
             await uow.article_tags.add_many(
                 article_id=article.id, tags=article_to_create.tags
             )
-        return ArticleDTO(
-            id=article.id,
-            author_id=article.author_id,
-            slug=article.slug,
-            title=article.title,
-            description=article.description,
-            body=article.body,
-            author=ArticleAuthorDTO(
-                username=profile.username,
-                bio=profile.bio,
-                image=profile.image,
-                following=profile.following,
-            ),
+        return entity_to_article_dto(
+            article=article,
+            profile=profile,
             tags=article_to_create.tags,
             favorited=False,
             favorites_count=0,
-            created_at=article.created_at,
-            updated_at=article.updated_at or article.created_at,
         )
 
     async def get_article_by_slug(
@@ -92,9 +95,12 @@ class ArticleService(IArticleService):
 
         article.assert_owner(user_id=current_user.id)
 
-        article = await uow.articles.update_by_slug(
-            slug=slug, update_item=article_to_update
+        article.update_content(
+            title=article_to_update.title,
+            description=article_to_update.description,
+            body=article_to_update.body,
         )
+        article = await uow.articles.update_by_slug(slug=slug, article=article)
         profile = await self._profile_service.get_profile_by_user_id(
             uow=uow, user_id=article.author_id, current_user=current_user
         )
@@ -120,14 +126,11 @@ class ArticleService(IArticleService):
             author=author,
             favorited=favorited,
         )
-        articles_with_extra = [
-            self._to_article_dto_from_feed_record(article) for article in articles
-        ]
         articles_count = await uow.articles.count_by_filters(
             tag=tag, author=author, favorited=favorited
         )
-        return ArticlesFeedDTO(
-            articles=articles_with_extra, articles_count=articles_count
+        return feed_records_to_articles_dto(
+            records=articles, articles_count=articles_count
         )
 
     async def get_articles_feed(
@@ -136,12 +139,9 @@ class ArticleService(IArticleService):
         articles = await uow.articles.list_by_followings(
             user_id=current_user.id, limit=limit, offset=offset
         )
-        articles_with_extra = [
-            self._to_article_dto_from_feed_record(article) for article in articles
-        ]
         articles_count = await uow.articles.count_by_followings(user_id=current_user.id)
-        return ArticlesFeedDTO(
-            articles=articles_with_extra, articles_count=articles_count
+        return feed_records_to_articles_dto(
+            records=articles, articles_count=articles_count
         )
 
     async def add_article_into_favorites(
@@ -186,8 +186,8 @@ class ArticleService(IArticleService):
             ),
         )
 
+    @staticmethod
     async def _get_article_info(
-        self,
         uow: IUnitOfWork,
         article: Article,
         profile: ProfileDTO,
@@ -202,44 +202,14 @@ class ArticleService(IArticleService):
             if user_id
             else False
         )
-        return ArticleDTO(
-            id=article.id,
-            author_id=article.author_id,
-            slug=article.slug,
-            title=article.title,
-            description=article.description,
-            body=article.body,
-            author=ArticleAuthorDTO(
-                username=profile.username,
-                bio=profile.bio,
-                image=profile.image,
-                following=profile.following,
-            ),
+        return entity_to_article_dto(
+            article=article,
+            profile=profile,
             tags=article_tags,
             favorited=is_favorited_by_user,
             favorites_count=favorites_count,
-            created_at=article.created_at,
-            updated_at=article.updated_at or article.created_at,
         )
 
     @staticmethod
     def _to_article_dto_from_feed_record(record: ArticleFeedRecordDTO) -> ArticleDTO:
-        return ArticleDTO(
-            id=record.id,
-            author_id=record.author_id,
-            slug=record.slug,
-            title=record.title,
-            description=record.description,
-            body=record.body,
-            tags=record.tags,
-            author=ArticleAuthorDTO(
-                username=record.author_username,
-                bio=record.author_bio or "",
-                image=record.author_image_url,
-                following=record.author_following,
-            ),
-            created_at=record.created_at,
-            updated_at=record.updated_at,
-            favorited=record.favorited,
-            favorites_count=record.favorites_count,
-        )
+        return feed_record_to_article_dto(record=record)

@@ -1,7 +1,7 @@
 import abc
 from collections.abc import Collection
 
-from conduit.domain.dtos.user import (
+from conduit.application.dtos.user import (
     CreateUserDTO,
     UpdatedUserDTO,
     UpdateUserDTO,

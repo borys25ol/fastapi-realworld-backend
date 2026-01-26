@@ -6,19 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql.functions import count
 
+from conduit.application.queries.article_feed import ArticleFeedRecordDTO
 from conduit.core.exceptions import ArticleNotFoundException
-from conduit.core.utils.slug import (
-    get_slug_unique_part,
-    make_slug_from_title,
-    make_slug_from_title_and_code,
-)
-from conduit.domain.dtos.article import (
-    ArticleFeedRecordDTO,
-    CreateArticleDTO,
-    UpdateArticleDTO,
-)
+from conduit.core.utils.slug import get_slug_unique_part
 from conduit.domain.entities.article import Article as ArticleEntity
 from conduit.domain.repositories.article import IArticleRepository
+from conduit.infrastructure.mappers.article_mapper import model_to_entity
 from conduit.infrastructure.models import (
     Article,
     ArticleTag,
@@ -35,19 +28,6 @@ FavoriteAlias = aliased(Favorite)
 class ArticleRepository(IArticleRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
-
-    @staticmethod
-    def _to_article_entity(model: Article) -> ArticleEntity:
-        return ArticleEntity(
-            id=model.id,
-            author_id=model.author_id,
-            slug=model.slug,
-            title=model.title,
-            description=model.description,
-            body=model.body,
-            created_at=model.created_at,
-            updated_at=model.updated_at,
-        )
 
     @staticmethod
     def _to_article_feed_record_dto(res: Any) -> ArticleFeedRecordDTO:
@@ -70,22 +50,22 @@ class ArticleRepository(IArticleRepository):
             favorites_count=res.favorites_count,
         )
 
-    async def add(self, author_id: int, create_item: CreateArticleDTO) -> ArticleEntity:
+    async def add(self, article: ArticleEntity) -> ArticleEntity:
         query = (
             insert(Article)
             .values(
-                author_id=author_id,
-                slug=make_slug_from_title(title=create_item.title),
-                title=create_item.title,
-                description=create_item.description,
-                body=create_item.body,
-                created_at=datetime.now(),
-                updated_at=datetime.now(),
+                author_id=article.author_id,
+                slug=article.slug,
+                title=article.title,
+                description=article.description,
+                body=article.body,
+                created_at=article.created_at,
+                updated_at=article.updated_at or article.created_at,
             )
             .returning(Article)
         )
         result = await self._session.execute(query)
-        return self._to_article_entity(result.scalar_one())
+        return model_to_entity(result.scalar_one())
 
     async def get_by_slug_or_none(self, slug: str) -> ArticleEntity | None:
         slug_unique_part = get_slug_unique_part(slug=slug)
@@ -93,7 +73,7 @@ class ArticleRepository(IArticleRepository):
             Article.slug == slug or Article.slug.contains(slug_unique_part)
         )
         if article := await self._session.scalar(query):
-            return self._to_article_entity(article)
+            return model_to_entity(article)
 
     async def get_by_slug(self, slug: str) -> ArticleEntity:
         slug_unique_part = get_slug_unique_part(slug=slug)
@@ -102,35 +82,30 @@ class ArticleRepository(IArticleRepository):
         )
         if not (article := await self._session.scalar(query)):
             raise ArticleNotFoundException()
-        return self._to_article_entity(article)
+        return model_to_entity(article)
 
     async def delete_by_slug(self, slug: str) -> None:
         query = delete(Article).where(Article.slug == slug)
         await self._session.execute(query)
 
-    async def update_by_slug(
-        self, slug: str, update_item: UpdateArticleDTO
-    ) -> ArticleEntity:
+    async def update_by_slug(self, slug: str, article: ArticleEntity) -> ArticleEntity:
         query = (
             update(Article)
             .where(Article.slug == slug)
-            .values(updated_at=datetime.now())
+            .values(updated_at=article.updated_at or datetime.now())
             .returning(Article)
         )
-        if update_item.title is not None:
-            updated_slug = make_slug_from_title_and_code(
-                title=update_item.title, code=get_slug_unique_part(slug=slug)
-            )
-            query = query.values(title=update_item.title, slug=updated_slug)
-        if update_item.description is not None:
-            query = query.values(description=update_item.description)
-        if update_item.body is not None:
-            query = query.values(body=update_item.body)
+        query = query.values(
+            title=article.title,
+            slug=article.slug,
+            description=article.description,
+            body=article.body,
+        )
 
-        article = await self._session.scalar(query)
-        if article is None:
+        article_model = await self._session.scalar(query)
+        if article_model is None:
             raise ArticleNotFoundException()
-        return self._to_article_entity(article)
+        return model_to_entity(article_model)
 
     async def list_by_followings(
         self, user_id: int, limit: int, offset: int

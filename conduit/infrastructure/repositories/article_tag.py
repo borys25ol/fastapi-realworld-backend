@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.domain.entities.tag import Tag as TagEntity
 from conduit.domain.repositories.article_tag import IArticleTagRepository
+from conduit.infrastructure.mappers.tag_mapper import model_to_entity
 from conduit.infrastructure.models import ArticleTag, Tag
 
 
@@ -14,10 +15,6 @@ class ArticleTagRepository(IArticleTagRepository):
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
-
-    @staticmethod
-    def _to_tag_entity(model: Tag) -> TagEntity:
-        return TagEntity(id=model.id, tag=model.tag, created_at=model.created_at)
 
     async def add_many(self, article_id: int, tags: list[str]) -> list[TagEntity]:
         insert_query = (
@@ -29,7 +26,7 @@ class ArticleTagRepository(IArticleTagRepository):
 
         select_query = select(Tag).where(Tag.tag.in_(tags))
         selected_tags = await self._session.scalars(select_query)
-        tag_records = [self._to_tag_entity(tag) for tag in selected_tags]
+        tag_records = [model_to_entity(tag) for tag in selected_tags]
 
         link_query = (
             insert(ArticleTag)
@@ -58,4 +55,4 @@ class ArticleTagRepository(IArticleTagRepository):
             .order_by(Tag.created_at.desc())
         )
         tags = await self._session.scalars(query)
-        return [self._to_tag_entity(tag) for tag in tags]
+        return [model_to_entity(tag) for tag in tags]

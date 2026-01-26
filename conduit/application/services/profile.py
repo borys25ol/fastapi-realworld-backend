@@ -1,7 +1,7 @@
 import abc
 
-from conduit.domain.dtos.profile import ProfileDTO
-from conduit.domain.dtos.user import UserDTO
+from conduit.application.dtos.profile import ProfileDTO
+from conduit.application.dtos.user import UserDTO
 from conduit.domain.uow import IUnitOfWork
 
 

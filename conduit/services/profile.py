@@ -2,12 +2,13 @@ from datetime import datetime
 
 from structlog import get_logger
 
+from conduit.application.dtos.profile import ProfileDTO
+from conduit.application.dtos.user import UserDTO
+from conduit.application.mappers.profile_mapper import user_to_profile_dto
+from conduit.application.services.profile import IProfileService
+from conduit.application.services.user import IUserService
 from conduit.core.exceptions import ProfileNotFoundException, UserNotFoundException
-from conduit.domain.dtos.profile import ProfileDTO
-from conduit.domain.dtos.user import UserDTO
 from conduit.domain.entities.follow import Follow
-from conduit.domain.services.profile import IProfileService
-from conduit.domain.services.user import IUserService
 from conduit.domain.uow import IUnitOfWork
 
 logger = get_logger()
@@ -30,12 +31,7 @@ class ProfileService(IProfileService):
             logger.exception("Profile not found", username=username)
             raise ProfileNotFoundException()
 
-        profile = ProfileDTO(
-            user_id=target_user.id,
-            username=target_user.username,
-            bio=target_user.bio,
-            image=target_user.image_url,
-        )
+        profile = user_to_profile_dto(user=target_user, following=False)
         if current_user:
             profile.following = await uow.followers.exists(
                 follower_id=current_user.id, following_id=target_user.id
@@ -46,12 +42,7 @@ class ProfileService(IProfileService):
         self, uow: IUnitOfWork, user_id: int, current_user: UserDTO | None = None
     ) -> ProfileDTO:
         target_user = await self._user_service.get_user_by_id(uow=uow, user_id=user_id)
-        profile = ProfileDTO(
-            user_id=target_user.id,
-            username=target_user.username,
-            bio=target_user.bio,
-            image=target_user.image_url,
-        )
+        profile = user_to_profile_dto(user=target_user, following=False)
         if current_user:
             profile.following = await uow.followers.exists(
                 follower_id=current_user.id, following_id=target_user.id
@@ -73,12 +64,8 @@ class ProfileService(IProfileService):
             else []
         )
         return [
-            ProfileDTO(
-                user_id=user_dto.id,
-                username=user_dto.username,
-                bio=user_dto.bio,
-                image=user_dto.image_url,
-                following=user_dto.id in following_user_ids,
+            user_to_profile_dto(
+                user=user_dto, following=user_dto.id in following_user_ids
             )
             for user_dto in target_users
         ]

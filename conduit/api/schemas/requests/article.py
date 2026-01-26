@@ -1,7 +1,5 @@
 from pydantic import BaseModel, Field
 
-from conduit.domain.dtos.article import CreateArticleDTO, UpdateArticleDTO
-
 
 class ArticlesPagination(BaseModel):
     limit: int = Field(ge=1)
@@ -30,21 +28,6 @@ class UpdateArticleData(BaseModel):
 class UpdateArticleRequest(BaseModel):
     article: UpdateArticleData
 
-    def to_dto(self) -> UpdateArticleDTO:
-        return UpdateArticleDTO(
-            title=self.article.title,
-            description=self.article.description,
-            body=self.article.body,
-        )
-
 
 class CreateArticleRequest(BaseModel):
     article: CreateArticleData
-
-    def to_dto(self) -> CreateArticleDTO:
-        return CreateArticleDTO(
-            title=self.article.title,
-            description=self.article.description,
-            body=self.article.body,
-            tags=self.article.tags,
-        )

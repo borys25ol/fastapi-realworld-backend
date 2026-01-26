@@ -2,8 +2,8 @@ import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from conduit.application.dtos.article import ArticleDTO, ArticlesFeedDTO
 from conduit.core.utils.date import convert_datetime_to_realworld
-from conduit.domain.dtos.article import ArticleDTO, ArticlesFeedDTO
 
 
 class ArticleAuthorData(BaseModel):

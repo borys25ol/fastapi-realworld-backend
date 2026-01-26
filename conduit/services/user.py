@@ -1,17 +1,19 @@
 from collections.abc import Collection
 from datetime import datetime
 
-from conduit.core.exceptions import UserCreateException
-from conduit.domain.dtos.user import (
+from conduit.application.dtos.user import (
     CreateUserDTO,
-    CreateUserRecordDTO,
     UpdatedUserDTO,
     UpdateUserDTO,
-    UpdateUserRecordDTO,
     UserDTO,
 )
+from conduit.application.mappers.user_mapper import (
+    entity_to_updated_user_dto,
+    entity_to_user_dto,
+)
+from conduit.application.services.user import IUserService
+from conduit.core.exceptions import UserCreateException
 from conduit.domain.entities.user import User
-from conduit.domain.services.user import IUserService
 from conduit.domain.uow import IUnitOfWork
 from conduit.services.password import get_password_hash
 
@@ -43,34 +45,38 @@ class UserService(IUserService):
             is not None
         )
 
-        create_user_record = CreateUserRecordDTO(
-            username=user_to_create.username,
-            email=user_to_create.email,
-            password_hash=get_password_hash(user_to_create.password),
-        )
         try:
-            user = await uow.users.add(create_item=create_user_record)
+            new_user = User(
+                id=0,
+                username=user_to_create.username,
+                email=user_to_create.email,
+                password_hash=get_password_hash(user_to_create.password),
+                bio="",
+                image_url="",
+                created_at=datetime.now(),
+            )
+            user = await uow.users.add(new_user)
         except Exception as exc:
             raise UserCreateException() from exc
-        return self._to_user_dto(user)
+        return entity_to_user_dto(user)
 
     async def get_user_by_id(self, uow: IUnitOfWork, user_id: int) -> UserDTO:
         user = await uow.users.get(user_id=user_id)
-        return self._to_user_dto(user)
+        return entity_to_user_dto(user)
 
     async def get_user_by_email(self, uow: IUnitOfWork, email: str) -> UserDTO:
         user = await uow.users.get_by_email(email=email)
-        return self._to_user_dto(user)
+        return entity_to_user_dto(user)
 
     async def get_user_by_username(self, uow: IUnitOfWork, username: str) -> UserDTO:
         user = await uow.users.get_by_username(username=username)
-        return self._to_user_dto(user)
+        return entity_to_user_dto(user)
 
     async def get_users_by_ids(
         self, uow: IUnitOfWork, user_ids: Collection[int]
     ) -> list[UserDTO]:
         users = await uow.users.list_by_users(user_ids=user_ids)
-        return [self._to_user_dto(user) for user in users]
+        return [entity_to_user_dto(user) for user in users]
 
     async def update_user(
         self, uow: IUnitOfWork, current_user: UserDTO, user_to_update: UpdateUserDTO
@@ -98,37 +104,12 @@ class UserService(IUserService):
                 is not None
             )
 
-        update_record = UpdateUserRecordDTO(
-            username=user_to_update.username,
-            email=user_to_update.email,
-            password_hash=(
-                get_password_hash(user_to_update.password)
-                if user_to_update.password is not None
-                else None
-            ),
-            bio=user_to_update.bio,
-            image_url=user_to_update.image_url,
-        )
-        updated_user = await uow.users.update(
-            user_id=current_user.id, update_item=update_record
-        )
-        return UpdatedUserDTO(
-            id=updated_user.id,
-            email=updated_user.email,
-            username=updated_user.username,
-            bio=updated_user.bio,
-            image=updated_user.image_url or "",
-        )
-
-    @staticmethod
-    def _to_user_dto(user: User) -> UserDTO:
-        dto = UserDTO(
-            username=user.username,
-            email=user.email,
-            password_hash=user.password_hash,
-            bio=user.bio,
-            image_url=user.image_url or "",
-            created_at=user.created_at,
-        )
-        dto.id = user.id
-        return dto
+        if user_to_update.username is not None:
+            user.change_username(user_to_update.username)
+        if user_to_update.email is not None:
+            user.change_email(user_to_update.email)
+        if user_to_update.password is not None:
+            user.change_password_hash(get_password_hash(user_to_update.password))
+        user.update_profile(bio=user_to_update.bio, image_url=user_to_update.image_url)
+        updated_user = await uow.users.update(user)
+        return entity_to_updated_user_dto(updated_user)

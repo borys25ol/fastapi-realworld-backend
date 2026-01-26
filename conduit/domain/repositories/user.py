@@ -1,7 +1,6 @@
 import abc
 from collections.abc import Collection
 
-from conduit.domain.dtos.user import CreateUserRecordDTO, UpdateUserRecordDTO
 from conduit.domain.entities.user import User
 
 
@@ -9,7 +8,7 @@ class IUserRepository(abc.ABC):
     """User repository interface."""
 
     @abc.abstractmethod
-    async def add(self, create_item: CreateUserRecordDTO) -> User: ...
+    async def add(self, user: User) -> User: ...
 
     @abc.abstractmethod
     async def get_or_none(self, user_id: int) -> User | None: ...
@@ -33,4 +32,4 @@ class IUserRepository(abc.ABC):
     async def get_by_username(self, username: str) -> User: ...
 
     @abc.abstractmethod
-    async def update(self, user_id: int, update_item: UpdateUserRecordDTO) -> User: ...
+    async def update(self, user: User) -> User: ...

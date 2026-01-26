@@ -1,6 +1,6 @@
 import abc
 
-from conduit.domain.dtos.user import (
+from conduit.application.dtos.user import (
     CreatedUserDTO,
     CreateUserDTO,
     LoggedInUserDTO,

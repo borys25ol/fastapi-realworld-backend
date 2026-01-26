@@ -1,7 +1,10 @@
-from conduit.domain.dtos.article import CreateArticleDTO
-from conduit.domain.dtos.user import CreateUserDTO, UserDTO
+import datetime
+
+from conduit.application.dtos.article import CreateArticleDTO
+from conduit.application.dtos.user import CreateUserDTO, UserDTO
+from conduit.application.services.user import IUserService
+from conduit.core.utils.slug import make_slug_from_title
 from conduit.domain.entities.article import Article
-from conduit.domain.services.user import IUserService
 from conduit.domain.uow import IUnitOfWork
 
 
@@ -21,4 +24,14 @@ async def create_another_test_article(uow: IUnitOfWork, author_id: int) -> Artic
         body="Test Body Content",
         tags=["tag1", "tag2", "tag3"],
     )
-    return await uow.articles.add(author_id=author_id, create_item=create_article_dto)
+    article = Article(
+        id=0,
+        author_id=author_id,
+        slug=make_slug_from_title(title=create_article_dto.title),
+        title=create_article_dto.title,
+        description=create_article_dto.description,
+        body=create_article_dto.body,
+        created_at=datetime.datetime.now(),
+        updated_at=None,
+    )
+    return await uow.articles.add(article)

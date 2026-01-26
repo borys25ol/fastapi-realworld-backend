@@ -4,8 +4,8 @@ import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
 
+from conduit.application.dtos.tag import TagDTO
 from conduit.core.providers import get_tag_service
-from conduit.domain.dtos.tag import TagDTO
 
 
 class _TagServiceStub:

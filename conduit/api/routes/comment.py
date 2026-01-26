@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Path
 from starlette import status
 
+from conduit.api.mappers.comment_mapper import request_to_create_comment_dto
 from conduit.api.schemas.requests.comment import CreateCommentRequest
 from conduit.api.schemas.responses.comment import CommentResponse, CommentsListResponse
 from conduit.core.dependencies import (
@@ -43,7 +44,7 @@ async def create_comment(
     comment_dto = await comment_service.create_article_comment(
         uow=uow,
         slug=slug,
-        comment_to_create=payload.to_dto(),
+        comment_to_create=request_to_create_comment_dto(payload),
         current_user=current_user,
     )
     return CommentResponse.from_dto(dto=comment_dto)

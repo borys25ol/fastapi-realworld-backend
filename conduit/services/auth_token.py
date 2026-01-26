@@ -3,10 +3,10 @@ from datetime import datetime, timedelta, timezone
 import jwt
 from structlog import get_logger
 
+from conduit.application.dtos.auth_token import TokenPayloadDTO
+from conduit.application.dtos.user import UserDTO
+from conduit.application.services.auth_token import IAuthTokenService
 from conduit.core.exceptions import IncorrectJWTTokenException
-from conduit.domain.dtos.auth_token import TokenPayloadDTO
-from conduit.domain.dtos.user import UserDTO
-from conduit.domain.services.auth_token import IAuthTokenService
 
 logger = get_logger()
 

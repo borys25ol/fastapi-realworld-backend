@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from conduit.domain.dtos.tag import TagDTO
+from conduit.application.dtos.tag import TagDTO
 
 
 class TagsResponse(BaseModel):

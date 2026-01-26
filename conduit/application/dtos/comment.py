@@ -1,7 +1,7 @@
 import datetime
 from dataclasses import dataclass
 
-from conduit.domain.dtos.profile import ProfileDTO
+from conduit.application.dtos.profile import ProfileDTO
 
 
 @dataclass(frozen=True)

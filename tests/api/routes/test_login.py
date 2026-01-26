@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
 
-from conduit.domain.dtos.user import UserDTO
+from conduit.application.dtos.user import UserDTO
 
 
 @pytest.mark.anyio

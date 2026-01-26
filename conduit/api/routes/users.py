@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from conduit.api.mappers.user_mapper import request_to_update_user_dto
 from conduit.api.schemas.requests.user import UserUpdateRequest
 from conduit.api.schemas.responses.user import CurrentUserResponse, UpdatedUserResponse
 from conduit.core.dependencies import CurrentUser, IUserService, JWTToken, UnitOfWork
@@ -29,6 +30,8 @@ async def update_current_user(
     Update current user.
     """
     updated_user_dto = await user_service.update_user(
-        uow=uow, current_user=current_user, user_to_update=payload.to_dto()
+        uow=uow,
+        current_user=current_user,
+        user_to_update=request_to_update_user_dto(payload),
     )
     return UpdatedUserResponse.from_dto(dto=updated_user_dto, token=token)

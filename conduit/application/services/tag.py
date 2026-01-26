@@ -1,6 +1,6 @@
 import abc
 
-from conduit.domain.dtos.tag import TagDTO
+from conduit.application.dtos.tag import TagDTO
 from conduit.domain.uow import IUnitOfWork
 
 

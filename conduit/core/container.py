@@ -3,15 +3,15 @@ from collections.abc import AsyncIterator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from conduit.application.services.article import IArticleService
+from conduit.application.services.auth import IUserAuthService
+from conduit.application.services.auth_token import IAuthTokenService
+from conduit.application.services.comment import ICommentService
+from conduit.application.services.profile import IProfileService
+from conduit.application.services.tag import ITagService
+from conduit.application.services.user import IUserService
 from conduit.core.config import get_app_settings
 from conduit.core.settings.base import BaseAppSettings
-from conduit.domain.services.article import IArticleService
-from conduit.domain.services.auth import IUserAuthService
-from conduit.domain.services.auth_token import IAuthTokenService
-from conduit.domain.services.comment import ICommentService
-from conduit.domain.services.profile import IProfileService
-from conduit.domain.services.tag import ITagService
-from conduit.domain.services.user import IUserService
 from conduit.domain.uow import IUnitOfWork
 from conduit.infrastructure.uow import SqlAlchemyUnitOfWork
 from conduit.services.article import ArticleService

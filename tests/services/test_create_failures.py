@@ -4,16 +4,19 @@ from typing import cast
 
 import pytest
 
+from conduit.application.dtos.article import CreateArticleDTO
+from conduit.application.dtos.comment import CreateCommentDTO
+from conduit.application.dtos.profile import ProfileDTO
+from conduit.application.dtos.user import CreateUserDTO, UserDTO
+from conduit.application.services.profile import IProfileService
 from conduit.core.exceptions import (
     ArticleCreateException,
     CommentCreateException,
     UserCreateException,
 )
-from conduit.domain.dtos.article import CreateArticleDTO
-from conduit.domain.dtos.comment import CreateCommentDTO
-from conduit.domain.dtos.profile import ProfileDTO
-from conduit.domain.dtos.user import CreateUserDTO, UserDTO
 from conduit.domain.entities.article import Article
+from conduit.domain.entities.comment import Comment
+from conduit.domain.entities.user import User
 from conduit.domain.repositories.article import IArticleRepository
 from conduit.domain.repositories.article_tag import IArticleTagRepository
 from conduit.domain.repositories.comment import ICommentRepository
@@ -21,7 +24,6 @@ from conduit.domain.repositories.favorite import IFavoriteRepository
 from conduit.domain.repositories.follower import IFollowerRepository
 from conduit.domain.repositories.tag import ITagRepository
 from conduit.domain.repositories.user import IUserRepository
-from conduit.domain.services.profile import IProfileService
 from conduit.domain.uow import IUnitOfWork
 from conduit.services.article import ArticleService
 from conduit.services.comment import CommentService
@@ -34,18 +36,18 @@ class _FailingArticleRepo:
 
 
 class _FailingUserRepo:
-    async def get_by_email_or_none(self, *_: object, **__: object) -> UserDTO | None:
+    async def get_by_email_or_none(self, *_: object, **__: object) -> User | None:
         return None
 
-    async def get_by_username_or_none(self, *_: object, **__: object) -> UserDTO | None:
+    async def get_by_username_or_none(self, *_: object, **__: object) -> User | None:
         return None
 
-    async def add(self, *_: object, **__: object) -> UserDTO:
+    async def add(self, *_: object, **__: object) -> User:
         raise RuntimeError("fail")
 
 
 class _FailingCommentRepo:
-    async def add(self, *_: object, **__: object) -> object:
+    async def add(self, *_: object, **__: object) -> Comment:
         raise RuntimeError("fail")
 
 

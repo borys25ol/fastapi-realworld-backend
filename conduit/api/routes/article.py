@@ -1,6 +1,10 @@
 from fastapi import APIRouter
 from starlette import status
 
+from conduit.api.mappers.article_mapper import (
+    request_to_create_article_dto,
+    request_to_update_article_dto,
+)
 from conduit.api.schemas.requests.article import (
     CreateArticleRequest,
     UpdateArticleRequest,
@@ -87,7 +91,9 @@ async def create_article(
     Create new article.
     """
     article_dto = await article_service.create_new_article(
-        uow=uow, author_id=current_user.id, article_to_create=payload.to_dto()
+        uow=uow,
+        author_id=current_user.id,
+        article_to_create=request_to_create_article_dto(payload),
     )
     return ArticleResponse.from_dto(dto=article_dto)
 
@@ -106,7 +112,7 @@ async def update_article(
     article_dto = await article_service.update_article_by_slug(
         uow=uow,
         slug=slug,
-        article_to_update=payload.to_dto(),
+        article_to_update=request_to_update_article_dto(payload),
         current_user=current_user,
     )
     return ArticleResponse.from_dto(dto=article_dto)

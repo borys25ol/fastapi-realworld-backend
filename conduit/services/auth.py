@@ -1,15 +1,19 @@
 from structlog import get_logger
 
-from conduit.core.exceptions import IncorrectLoginInputException, UserNotFoundException
-from conduit.domain.dtos.user import (
+from conduit.application.dtos.user import (
     CreatedUserDTO,
     CreateUserDTO,
     LoggedInUserDTO,
     LoginUserDTO,
 )
-from conduit.domain.services.auth import IUserAuthService
-from conduit.domain.services.auth_token import IAuthTokenService
-from conduit.domain.services.user import IUserService
+from conduit.application.mappers.user_mapper import (
+    user_dto_to_created_user_dto,
+    user_dto_to_logged_in_user_dto,
+)
+from conduit.application.services.auth import IUserAuthService
+from conduit.application.services.auth_token import IAuthTokenService
+from conduit.application.services.user import IUserService
+from conduit.core.exceptions import IncorrectLoginInputException, UserNotFoundException
 from conduit.domain.uow import IUnitOfWork
 from conduit.services.password import verify_password
 
@@ -32,14 +36,7 @@ class UserAuthService(IUserAuthService):
             uow=uow, user_to_create=user_to_create
         )
         jwt_token = self._auth_token_service.generate_jwt_token(user=user)
-        return CreatedUserDTO(
-            id=user.id,
-            email=user.email,
-            username=user.username,
-            bio=user.bio,
-            image=user.image_url,
-            token=jwt_token,
-        )
+        return user_dto_to_created_user_dto(user=user, token=jwt_token)
 
     async def sign_in_user(
         self, uow: IUnitOfWork, user_to_login: LoginUserDTO
@@ -59,10 +56,4 @@ class UserAuthService(IUserAuthService):
             raise IncorrectLoginInputException()
 
         jwt_token = self._auth_token_service.generate_jwt_token(user=user)
-        return LoggedInUserDTO(
-            email=user.email,
-            username=user.username,
-            bio=user.bio,
-            image=user.image_url,
-            token=jwt_token,
-        )
+        return user_dto_to_logged_in_user_dto(user=user, token=jwt_token)

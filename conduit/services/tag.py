@@ -1,6 +1,6 @@
-from conduit.domain.dtos.tag import TagDTO
-from conduit.domain.entities.tag import Tag
-from conduit.domain.services.tag import ITagService
+from conduit.application.dtos.tag import TagDTO
+from conduit.application.mappers.tag_mapper import entity_to_tag_dto
+from conduit.application.services.tag import ITagService
 from conduit.domain.uow import IUnitOfWork
 
 
@@ -9,8 +9,4 @@ class TagService(ITagService):
 
     async def get_all_tags(self, uow: IUnitOfWork) -> list[TagDTO]:
         tags = await uow.tags.list()
-        return [self._to_tag_dto(tag) for tag in tags]
-
-    @staticmethod
-    def _to_tag_dto(tag: Tag) -> TagDTO:
-        return TagDTO(id=tag.id, tag=tag.tag, created_at=tag.created_at)
+        return [entity_to_tag_dto(tag) for tag in tags]

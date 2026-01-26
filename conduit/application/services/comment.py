@@ -1,7 +1,11 @@
 import abc
 
-from conduit.domain.dtos.comment import CommentDTO, CommentsListDTO, CreateCommentDTO
-from conduit.domain.dtos.user import UserDTO
+from conduit.application.dtos.comment import (
+    CommentDTO,
+    CommentsListDTO,
+    CreateCommentDTO,
+)
+from conduit.application.dtos.user import UserDTO
 from conduit.domain.uow import IUnitOfWork
 
 

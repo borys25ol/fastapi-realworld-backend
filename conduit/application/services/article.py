@@ -1,12 +1,12 @@
 import abc
 
-from conduit.domain.dtos.article import (
+from conduit.application.dtos.article import (
     ArticleDTO,
     ArticlesFeedDTO,
     CreateArticleDTO,
     UpdateArticleDTO,
 )
-from conduit.domain.dtos.user import UserDTO
+from conduit.application.dtos.user import UserDTO
 from conduit.domain.uow import IUnitOfWork
 
 

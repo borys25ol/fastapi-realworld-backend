@@ -10,14 +10,14 @@ from sqlalchemy import create_engine
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
 from conduit.app import create_app
+from conduit.application.dtos.article import ArticleDTO, CreateArticleDTO
+from conduit.application.dtos.user import CreateUserDTO, UserDTO
+from conduit.application.services.article import IArticleService
+from conduit.application.services.auth_token import IAuthTokenService
+from conduit.application.services.user import IUserService
 from conduit.core.config import get_app_settings
 from conduit.core.container import Container
 from conduit.core.settings.base import BaseAppSettings
-from conduit.domain.dtos.article import ArticleDTO, CreateArticleDTO
-from conduit.domain.dtos.user import CreateUserDTO, UserDTO
-from conduit.domain.services.article import IArticleService
-from conduit.domain.services.auth_token import IAuthTokenService
-from conduit.domain.services.user import IUserService
 from conduit.domain.uow import IUnitOfWork
 from conduit.infrastructure.models import Base
 

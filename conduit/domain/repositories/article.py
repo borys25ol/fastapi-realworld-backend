@@ -1,10 +1,5 @@
 import abc
 
-from conduit.domain.dtos.article import (
-    ArticleFeedRecordDTO,
-    CreateArticleDTO,
-    UpdateArticleDTO,
-)
 from conduit.domain.entities.article import Article
 
 
@@ -12,7 +7,7 @@ class IArticleRepository(abc.ABC):
     """Article repository interface."""
 
     @abc.abstractmethod
-    async def add(self, author_id: int, create_item: CreateArticleDTO) -> Article: ...
+    async def add(self, article: Article) -> Article: ...
 
     @abc.abstractmethod
     async def get_by_slug_or_none(self, slug: str) -> Article | None: ...
@@ -24,14 +19,12 @@ class IArticleRepository(abc.ABC):
     async def delete_by_slug(self, slug: str) -> None: ...
 
     @abc.abstractmethod
-    async def update_by_slug(
-        self, slug: str, update_item: UpdateArticleDTO
-    ) -> Article: ...
+    async def update_by_slug(self, slug: str, article: Article) -> Article: ...
 
     @abc.abstractmethod
     async def list_by_followings(
         self, user_id: int, limit: int, offset: int
-    ) -> list[ArticleFeedRecordDTO]: ...
+    ) -> list: ...
 
     @abc.abstractmethod
     async def list_by_filters(
@@ -42,7 +35,7 @@ class IArticleRepository(abc.ABC):
         tag: str | None = None,
         author: str | None = None,
         favorited: str | None = None,
-    ) -> list[ArticleFeedRecordDTO]: ...
+    ) -> list: ...
 
     @abc.abstractmethod
     async def count_by_followings(self, user_id: int) -> int: ...

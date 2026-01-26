@@ -2,8 +2,6 @@ from typing import Any
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-from conduit.domain.dtos.user import CreateUserDTO, LoginUserDTO, UpdateUserDTO
-
 
 class UserRegistrationData(BaseModel):
     email: EmailStr
@@ -32,29 +30,10 @@ class UserUpdateData(BaseModel):
 class UserRegistrationRequest(BaseModel):
     user: UserRegistrationData
 
-    def to_dto(self) -> CreateUserDTO:
-        return CreateUserDTO(
-            username=self.user.username,
-            email=self.user.email,
-            password=self.user.password,
-        )
-
 
 class UserLoginRequest(BaseModel):
     user: UserLoginData
 
-    def to_dto(self) -> LoginUserDTO:
-        return LoginUserDTO(email=self.user.email, password=self.user.password)
-
 
 class UserUpdateRequest(BaseModel):
     user: UserUpdateData
-
-    def to_dto(self) -> UpdateUserDTO:
-        return UpdateUserDTO(
-            email=self.user.email,
-            password=self.user.password,
-            username=self.user.username,
-            bio=self.user.bio,
-            image_url=self.user.image,
-        )
