@@ -1,10 +1,10 @@
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.api.schemas.responses.profile import ProfileResponse
 from conduit.domain.dtos.user import UserDTO
 from conduit.domain.services.user import IUserService
+from conduit.domain.uow import IUnitOfWork
 from tests.utils import create_another_test_user
 
 
@@ -51,11 +51,9 @@ async def test_authenticated_user_cant_follow_another_profile(
     authorized_test_client: AsyncClient,
     test_user: UserDTO,
     user_service: IUserService,
-    session: AsyncSession,
+    uow: IUnitOfWork,
 ) -> None:
-    new_user = await create_another_test_user(
-        session=session, user_service=user_service
-    )
+    new_user = await create_another_test_user(uow=uow, user_service=user_service)
     response = await authorized_test_client.post(
         url=f"/profiles/{new_user.username}/follow"
     )
@@ -68,11 +66,9 @@ async def test_authenticated_user_cant_follow_already_followed_profile(
     authorized_test_client: AsyncClient,
     test_user: UserDTO,
     user_service: IUserService,
-    session: AsyncSession,
+    uow: IUnitOfWork,
 ) -> None:
-    new_user = await create_another_test_user(
-        session=session, user_service=user_service
-    )
+    new_user = await create_another_test_user(uow=uow, user_service=user_service)
     response = await authorized_test_client.post(
         url=f"/profiles/{new_user.username}/follow"
     )
@@ -87,13 +83,9 @@ async def test_authenticated_user_cant_follow_already_followed_profile(
 
 @pytest.mark.anyio
 async def test_authenticated_user_cant_unfollow_not_followed_profile(
-    authorized_test_client: AsyncClient,
-    user_service: IUserService,
-    session: AsyncSession,
+    authorized_test_client: AsyncClient, user_service: IUserService, uow: IUnitOfWork
 ) -> None:
-    new_user = await create_another_test_user(
-        session=session, user_service=user_service
-    )
+    new_user = await create_another_test_user(uow=uow, user_service=user_service)
     response = await authorized_test_client.delete(
         url=f"/profiles/{new_user.username}/follow"
     )
@@ -102,13 +94,9 @@ async def test_authenticated_user_cant_unfollow_not_followed_profile(
 
 @pytest.mark.anyio
 async def test_authenticated_user_can_unfollow_followed_profile(
-    authorized_test_client: AsyncClient,
-    user_service: IUserService,
-    session: AsyncSession,
+    authorized_test_client: AsyncClient, user_service: IUserService, uow: IUnitOfWork
 ) -> None:
-    new_user = await create_another_test_user(
-        session=session, user_service=user_service
-    )
+    new_user = await create_another_test_user(uow=uow, user_service=user_service)
     response = await authorized_test_client.post(
         url=f"/profiles/{new_user.username}/follow"
     )
@@ -124,13 +112,9 @@ async def test_authenticated_user_can_unfollow_followed_profile(
 
 @pytest.mark.anyio
 async def test_authenticated_user_can_unfollow_already_unfollowed_profile(
-    authorized_test_client: AsyncClient,
-    user_service: IUserService,
-    session: AsyncSession,
+    authorized_test_client: AsyncClient, user_service: IUserService, uow: IUnitOfWork
 ) -> None:
-    new_user = await create_another_test_user(
-        session=session, user_service=user_service
-    )
+    new_user = await create_another_test_user(uow=uow, user_service=user_service)
     response = await authorized_test_client.post(
         url=f"/profiles/{new_user.username}/follow"
     )

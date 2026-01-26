@@ -5,13 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from conduit.core.config import get_app_settings
 from conduit.core.settings.base import BaseAppSettings
-from conduit.domain.repositories.article import IArticleRepository
-from conduit.domain.repositories.article_tag import IArticleTagRepository
-from conduit.domain.repositories.comment import ICommentRepository
-from conduit.domain.repositories.favorite import IFavoriteRepository
-from conduit.domain.repositories.follower import IFollowerRepository
-from conduit.domain.repositories.tag import ITagRepository
-from conduit.domain.repositories.user import IUserRepository
 from conduit.domain.services.article import IArticleService
 from conduit.domain.services.auth import IUserAuthService
 from conduit.domain.services.auth_token import IAuthTokenService
@@ -19,13 +12,8 @@ from conduit.domain.services.comment import ICommentService
 from conduit.domain.services.profile import IProfileService
 from conduit.domain.services.tag import ITagService
 from conduit.domain.services.user import IUserService
-from conduit.infrastructure.repositories.article import ArticleRepository
-from conduit.infrastructure.repositories.article_tag import ArticleTagRepository
-from conduit.infrastructure.repositories.comment import CommentRepository
-from conduit.infrastructure.repositories.favorite import FavoriteRepository
-from conduit.infrastructure.repositories.follower import FollowerRepository
-from conduit.infrastructure.repositories.tag import TagRepository
-from conduit.infrastructure.repositories.user import UserRepository
+from conduit.domain.uow import IUnitOfWork
+from conduit.infrastructure.uow import SqlAlchemyUnitOfWork
 from conduit.services.article import ArticleService
 from conduit.services.auth import UserAuthService
 from conduit.services.auth_token import AuthTokenService
@@ -66,35 +54,15 @@ class Container:
             finally:
                 await session.close()
 
-    def user_repository(self) -> IUserRepository:
-        return UserRepository()
-
-    @staticmethod
-    def follower_repository() -> IFollowerRepository:
-        return FollowerRepository()
-
-    def tags_repository(self) -> ITagRepository:
-        return TagRepository()
-
-    def article_repository(self) -> IArticleRepository:
-        return ArticleRepository()
-
-    def article_tag_repository(self) -> IArticleTagRepository:
-        return ArticleTagRepository()
-
-    def comment_repository(self) -> ICommentRepository:
-        return CommentRepository()
-
-    @staticmethod
-    def favorite_repository() -> IFavoriteRepository:
-        return FavoriteRepository()
-
     def auth_token_service(self) -> IAuthTokenService:
         return AuthTokenService(
             secret_key=self._settings.jwt_secret_key,
             token_expiration_minutes=self._settings.jwt_token_expiration_minutes,
             algorithm=self._settings.jwt_algorithm,
         )
+
+    def unit_of_work(self) -> IUnitOfWork:
+        return SqlAlchemyUnitOfWork(self._session)
 
     def user_auth_service(self) -> IUserAuthService:
         return UserAuthService(
@@ -103,30 +71,19 @@ class Container:
         )
 
     def user_service(self) -> IUserService:
-        return UserService(user_repo=self.user_repository())
+        return UserService()
 
     def profile_service(self) -> IProfileService:
-        return ProfileService(
-            user_service=self.user_service(), follower_repo=self.follower_repository()
-        )
+        return ProfileService(user_service=self.user_service())
 
     def tag_service(self) -> ITagService:
-        return TagService(tag_repo=self.tags_repository())
+        return TagService()
 
     def article_service(self) -> IArticleService:
-        return ArticleService(
-            article_repo=self.article_repository(),
-            article_tag_repo=self.article_tag_repository(),
-            favorite_repo=self.favorite_repository(),
-            profile_service=self.profile_service(),
-        )
+        return ArticleService(profile_service=self.profile_service())
 
     def comment_service(self) -> ICommentService:
-        return CommentService(
-            article_repo=self.article_repository(),
-            comment_repo=self.comment_repository(),
-            profile_service=self.profile_service(),
-        )
+        return CommentService(profile_service=self.profile_service())
 
 
 container = Container(settings=get_app_settings())

@@ -1,5 +1,4 @@
 import abc
-from typing import Any
 
 from conduit.domain.dtos.article import (
     ArticleFeedRecordDTO,
@@ -14,34 +13,31 @@ class IArticleRepository(abc.ABC):
 
     @abc.abstractmethod
     async def add(
-        self, session: Any, author_id: int, create_item: CreateArticleDTO
+        self, author_id: int, create_item: CreateArticleDTO
     ) -> ArticleRecordDTO: ...
 
     @abc.abstractmethod
-    async def get_by_slug_or_none(
-        self, session: Any, slug: str
-    ) -> ArticleRecordDTO | None: ...
+    async def get_by_slug_or_none(self, slug: str) -> ArticleRecordDTO | None: ...
 
     @abc.abstractmethod
-    async def get_by_slug(self, session: Any, slug: str) -> ArticleRecordDTO: ...
+    async def get_by_slug(self, slug: str) -> ArticleRecordDTO: ...
 
     @abc.abstractmethod
-    async def delete_by_slug(self, session: Any, slug: str) -> None: ...
+    async def delete_by_slug(self, slug: str) -> None: ...
 
     @abc.abstractmethod
     async def update_by_slug(
-        self, session: Any, slug: str, update_item: UpdateArticleDTO
+        self, slug: str, update_item: UpdateArticleDTO
     ) -> ArticleRecordDTO: ...
 
     @abc.abstractmethod
     async def list_by_followings(
-        self, session: Any, user_id: int, limit: int, offset: int
+        self, user_id: int, limit: int, offset: int
     ) -> list[ArticleFeedRecordDTO]: ...
 
     @abc.abstractmethod
     async def list_by_filters(
         self,
-        session: Any,
         user_id: int | None,
         limit: int,
         offset: int,
@@ -51,12 +47,11 @@ class IArticleRepository(abc.ABC):
     ) -> list[ArticleFeedRecordDTO]: ...
 
     @abc.abstractmethod
-    async def count_by_followings(self, session: Any, user_id: int) -> int: ...
+    async def count_by_followings(self, user_id: int) -> int: ...
 
     @abc.abstractmethod
     async def count_by_filters(
         self,
-        session: Any,
         tag: str | None = None,
         author: str | None = None,
         favorited: str | None = None,

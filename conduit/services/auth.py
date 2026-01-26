@@ -1,4 +1,3 @@
-from sqlalchemy.ext.asyncio import AsyncSession
 from structlog import get_logger
 
 from conduit.core.exceptions import IncorrectLoginInputException, UserNotFoundException
@@ -11,6 +10,7 @@ from conduit.domain.dtos.user import (
 from conduit.domain.services.auth import IUserAuthService
 from conduit.domain.services.auth_token import IAuthTokenService
 from conduit.domain.services.user import IUserService
+from conduit.domain.uow import IUnitOfWork
 from conduit.services.password import verify_password
 
 logger = get_logger()
@@ -26,10 +26,10 @@ class UserAuthService(IUserAuthService):
         self._auth_token_service = auth_token_service
 
     async def sign_up_user(
-        self, session: AsyncSession, user_to_create: CreateUserDTO
+        self, uow: IUnitOfWork, user_to_create: CreateUserDTO
     ) -> CreatedUserDTO:
         user = await self._user_service.create_user(
-            session=session, user_to_create=user_to_create
+            uow=uow, user_to_create=user_to_create
         )
         jwt_token = self._auth_token_service.generate_jwt_token(user=user)
         return CreatedUserDTO(
@@ -42,11 +42,11 @@ class UserAuthService(IUserAuthService):
         )
 
     async def sign_in_user(
-        self, session: AsyncSession, user_to_login: LoginUserDTO
+        self, uow: IUnitOfWork, user_to_login: LoginUserDTO
     ) -> LoggedInUserDTO:
         try:
             user = await self._user_service.get_user_by_email(
-                session=session, email=user_to_login.email
+                uow=uow, email=user_to_login.email
             )
         except UserNotFoundException:
             logger.error("User not found", email=user_to_login.email)

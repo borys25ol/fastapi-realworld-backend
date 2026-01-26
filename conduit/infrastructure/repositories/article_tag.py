@@ -12,22 +12,23 @@ from conduit.infrastructure.models import ArticleTag, Tag
 class ArticleTagRepository(IArticleTagRepository):
     """Repository for Article Tag model."""
 
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
     @staticmethod
     def _to_tag_record_dto(model: Tag) -> TagRecordDTO:
         return TagRecordDTO(id=model.id, tag=model.tag, created_at=model.created_at)
 
-    async def add_many(
-        self, session: AsyncSession, article_id: int, tags: list[str]
-    ) -> list[TagRecordDTO]:
+    async def add_many(self, article_id: int, tags: list[str]) -> list[TagRecordDTO]:
         insert_query = (
             insert(Tag)
             .on_conflict_do_nothing()
             .values([dict(tag=tag, created_at=datetime.now()) for tag in tags])
         )
-        await session.execute(insert_query)
+        await self._session.execute(insert_query)
 
         select_query = select(Tag).where(Tag.tag.in_(tags))
-        selected_tags = await session.scalars(select_query)
+        selected_tags = await self._session.scalars(select_query)
         tag_records = [self._to_tag_record_dto(tag) for tag in selected_tags]
 
         link_query = (
@@ -44,11 +45,11 @@ class ArticleTagRepository(IArticleTagRepository):
                 ]
             )
         )
-        await session.execute(link_query)
+        await self._session.execute(link_query)
 
         return tag_records
 
-    async def list(self, session: AsyncSession, article_id: int) -> list[TagRecordDTO]:
+    async def list(self, article_id: int) -> list[TagRecordDTO]:
         query = (
             select(Tag, ArticleTag)
             .where(
@@ -56,5 +57,5 @@ class ArticleTagRepository(IArticleTagRepository):
             )
             .order_by(Tag.created_at.desc())
         )
-        tags = await session.scalars(query)
+        tags = await self._session.scalars(query)
         return [self._to_tag_record_dto(tag) for tag in tags]

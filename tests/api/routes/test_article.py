@@ -1,11 +1,10 @@
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.api.schemas.responses.article import ArticleResponse
 from conduit.domain.dtos.article import ArticleDTO
 from conduit.domain.services.user import IUserService
-from conduit.infrastructure.repositories.article import ArticleRepository
+from conduit.domain.uow import IUnitOfWork
 from tests.utils import create_another_test_article, create_another_test_user
 
 
@@ -115,34 +114,20 @@ async def test_user_can_retrieve_article_if_exists(
 
 @pytest.mark.anyio
 async def test_user_can_not_delete_foreign_article(
-    authorized_test_client: AsyncClient,
-    session: AsyncSession,
-    user_service: IUserService,
-    article_repository: ArticleRepository,
+    authorized_test_client: AsyncClient, user_service: IUserService, uow: IUnitOfWork
 ) -> None:
-    new_user = await create_another_test_user(
-        session=session, user_service=user_service
-    )
-    new_article = await create_another_test_article(
-        session=session, article_repository=article_repository, author_id=new_user.id
-    )
+    new_user = await create_another_test_user(uow=uow, user_service=user_service)
+    new_article = await create_another_test_article(uow=uow, author_id=new_user.id)
     response = await authorized_test_client.delete(url=f"/articles/{new_article.slug}")
     assert response.status_code == 403
 
 
 @pytest.mark.anyio
 async def test_user_can_not_update_foreign_article(
-    authorized_test_client: AsyncClient,
-    session: AsyncSession,
-    user_service: IUserService,
-    article_repository: ArticleRepository,
+    authorized_test_client: AsyncClient, user_service: IUserService, uow: IUnitOfWork
 ) -> None:
-    new_user = await create_another_test_user(
-        session=session, user_service=user_service
-    )
-    new_article = await create_another_test_article(
-        session=session, article_repository=article_repository, author_id=new_user.id
-    )
+    new_user = await create_another_test_user(uow=uow, user_service=user_service)
+    new_article = await create_another_test_article(uow=uow, author_id=new_user.id)
     response = await authorized_test_client.put(
         url=f"/articles/{new_article.slug}",
         json={"article": {"title": "New Updated Title"}},

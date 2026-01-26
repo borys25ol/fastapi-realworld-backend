@@ -33,6 +33,9 @@ FavoriteAlias = aliased(Favorite)
 
 
 class ArticleRepository(IArticleRepository):
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
     @staticmethod
     def _to_article_record_dto(model: Article) -> ArticleRecordDTO:
         return ArticleRecordDTO(
@@ -68,7 +71,7 @@ class ArticleRepository(IArticleRepository):
         )
 
     async def add(
-        self, session: AsyncSession, author_id: int, create_item: CreateArticleDTO
+        self, author_id: int, create_item: CreateArticleDTO
     ) -> ArticleRecordDTO:
         query = (
             insert(Article)
@@ -83,34 +86,32 @@ class ArticleRepository(IArticleRepository):
             )
             .returning(Article)
         )
-        result = await session.execute(query)
+        result = await self._session.execute(query)
         return self._to_article_record_dto(result.scalar_one())
 
-    async def get_by_slug_or_none(
-        self, session: AsyncSession, slug: str
-    ) -> ArticleRecordDTO | None:
+    async def get_by_slug_or_none(self, slug: str) -> ArticleRecordDTO | None:
         slug_unique_part = get_slug_unique_part(slug=slug)
         query = select(Article).where(
             Article.slug == slug or Article.slug.contains(slug_unique_part)
         )
-        if article := await session.scalar(query):
+        if article := await self._session.scalar(query):
             return self._to_article_record_dto(article)
 
-    async def get_by_slug(self, session: AsyncSession, slug: str) -> ArticleRecordDTO:
+    async def get_by_slug(self, slug: str) -> ArticleRecordDTO:
         slug_unique_part = get_slug_unique_part(slug=slug)
         query = select(Article).where(
             Article.slug == slug or Article.slug.contains(slug_unique_part)
         )
-        if not (article := await session.scalar(query)):
+        if not (article := await self._session.scalar(query)):
             raise ArticleNotFoundException()
         return self._to_article_record_dto(article)
 
-    async def delete_by_slug(self, session: AsyncSession, slug: str) -> None:
+    async def delete_by_slug(self, slug: str) -> None:
         query = delete(Article).where(Article.slug == slug)
-        await session.execute(query)
+        await self._session.execute(query)
 
     async def update_by_slug(
-        self, session: AsyncSession, slug: str, update_item: UpdateArticleDTO
+        self, slug: str, update_item: UpdateArticleDTO
     ) -> ArticleRecordDTO:
         query = (
             update(Article)
@@ -128,13 +129,13 @@ class ArticleRepository(IArticleRepository):
         if update_item.body is not None:
             query = query.values(body=update_item.body)
 
-        article = await session.scalar(query)
+        article = await self._session.scalar(query)
         if article is None:
             raise ArticleNotFoundException()
         return self._to_article_record_dto(article)
 
     async def list_by_followings(
-        self, session: AsyncSession, user_id: int, limit: int, offset: int
+        self, user_id: int, limit: int, offset: int
     ) -> list[ArticleFeedRecordDTO]:
         query = (
             select(
@@ -191,13 +192,12 @@ class ArticleRepository(IArticleRepository):
             )
         )
         query = query.limit(limit).offset(offset)
-        articles = await session.execute(query)
+        articles = await self._session.execute(query)
 
         return [self._to_article_feed_record_dto(article) for article in articles]
 
     async def list_by_filters(
         self,
-        session: AsyncSession,
         user_id: int | None,
         limit: int,
         offset: int,
@@ -274,10 +274,10 @@ class ArticleRepository(IArticleRepository):
             query = query.where(FavoriteAlias.user_id == favorited_user_id)
 
         query = query.limit(limit).offset(offset)
-        articles = await session.execute(query)
+        articles = await self._session.execute(query)
         return [self._to_article_feed_record_dto(article) for article in articles]
 
-    async def count_by_followings(self, session: AsyncSession, user_id: int) -> int:
+    async def count_by_followings(self, user_id: int) -> int:
         query = select(count(Article.id)).join(
             Follower,
             (
@@ -285,12 +285,11 @@ class ArticleRepository(IArticleRepository):
                 & (Follower.follower_id == user_id)
             ),
         )
-        result = await session.execute(query)
+        result = await self._session.execute(query)
         return int(result.scalar_one())
 
     async def count_by_filters(
         self,
-        session: AsyncSession,
         tag: str | None = None,
         author: str | None = None,
         favorited: str | None = None,
@@ -331,5 +330,5 @@ class ArticleRepository(IArticleRepository):
             )
             # fmt: on
 
-        result = await session.execute(query)
+        result = await self._session.execute(query)
         return int(result.scalar_one())

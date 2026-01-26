@@ -13,9 +13,10 @@ from conduit.infrastructure.models import User
 class UserRepository(IUserRepository):
     """Repository for User model."""
 
-    async def add(
-        self, session: AsyncSession, create_item: CreateUserRecordDTO
-    ) -> UserDTO:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def add(self, create_item: CreateUserRecordDTO) -> UserDTO:
         query = (
             insert(User)
             .values(
@@ -28,59 +29,51 @@ class UserRepository(IUserRepository):
             )
             .returning(User)
         )
-        result = await session.execute(query)
+        result = await self._session.execute(query)
         return self._to_user_dto(result.scalar_one())
 
-    async def get_by_email_or_none(
-        self, session: AsyncSession, email: str
-    ) -> UserDTO | None:
+    async def get_by_email_or_none(self, email: str) -> UserDTO | None:
         query = select(User).where(User.email == email)
-        if user := await session.scalar(query):
+        if user := await self._session.scalar(query):
             return self._to_user_dto(user)
         return None
 
-    async def get_by_email(self, session: AsyncSession, email: str) -> UserDTO:
+    async def get_by_email(self, email: str) -> UserDTO:
         query = select(User).where(User.email == email)
-        if not (user := await session.scalar(query)):
+        if not (user := await self._session.scalar(query)):
             raise UserNotFoundException()
         return self._to_user_dto(user)
 
-    async def get_or_none(self, session: AsyncSession, user_id: int) -> UserDTO | None:
+    async def get_or_none(self, user_id: int) -> UserDTO | None:
         query = select(User).where(User.id == user_id)
-        if user := await session.scalar(query):
+        if user := await self._session.scalar(query):
             return self._to_user_dto(user)
         return None
 
-    async def get(self, session: AsyncSession, user_id: int) -> UserDTO:
+    async def get(self, user_id: int) -> UserDTO:
         query = select(User).where(User.id == user_id)
-        if not (user := await session.scalar(query)):
+        if not (user := await self._session.scalar(query)):
             raise UserNotFoundException()
         return self._to_user_dto(user)
 
-    async def list_by_users(
-        self, session: AsyncSession, user_ids: Collection[int]
-    ) -> list[UserDTO]:
+    async def list_by_users(self, user_ids: Collection[int]) -> list[UserDTO]:
         query = select(User).where(User.id.in_(user_ids))
-        users = await session.scalars(query)
+        users = await self._session.scalars(query)
         return [self._to_user_dto(user) for user in users]
 
-    async def get_by_username_or_none(
-        self, session: AsyncSession, username: str
-    ) -> UserDTO | None:
+    async def get_by_username_or_none(self, username: str) -> UserDTO | None:
         query = select(User).where(User.username == username)
-        if user := await session.scalar(query):
+        if user := await self._session.scalar(query):
             return self._to_user_dto(user)
         return None
 
-    async def get_by_username(self, session: AsyncSession, username: str) -> UserDTO:
+    async def get_by_username(self, username: str) -> UserDTO:
         query = select(User).where(User.username == username)
-        if not (user := await session.scalar(query)):
+        if not (user := await self._session.scalar(query)):
             raise UserNotFoundException()
         return self._to_user_dto(user)
 
-    async def update(
-        self, session: AsyncSession, user_id: int, update_item: UpdateUserRecordDTO
-    ) -> UserDTO:
+    async def update(self, user_id: int, update_item: UpdateUserRecordDTO) -> UserDTO:
         query = (
             update(User)
             .where(User.id == user_id)
@@ -98,7 +91,7 @@ class UserRepository(IUserRepository):
         if update_item.image_url is not None:
             query = query.values(image_url=update_item.image_url)
 
-        result = await session.execute(query)
+        result = await self._session.execute(query)
         return self._to_user_dto(result.scalar_one())
 
     @staticmethod

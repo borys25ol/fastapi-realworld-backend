@@ -1,8 +1,5 @@
 from collections.abc import Collection
 
-from sqlalchemy.exc import MultipleResultsFound, NoResultFound
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from conduit.core.exceptions import (
     EmailAlreadyTakenException,
     UserCreateException,
@@ -16,28 +13,21 @@ from conduit.domain.dtos.user import (
     UpdateUserRecordDTO,
     UserDTO,
 )
-from conduit.domain.repositories.user import IUserRepository
 from conduit.domain.services.user import IUserService
+from conduit.domain.uow import IUnitOfWork
 from conduit.services.password import get_password_hash
 
 
 class UserService(IUserService):
     """Service to handle user get & update logic."""
 
-    def __init__(self, user_repo: IUserRepository) -> None:
-        self._user_repo = user_repo
-
     async def create_user(
-        self, session: AsyncSession, user_to_create: CreateUserDTO
+        self, uow: IUnitOfWork, user_to_create: CreateUserDTO
     ) -> UserDTO:
-        if await self._user_repo.get_by_email_or_none(
-            session=session, email=user_to_create.email
-        ):
+        if await uow.users.get_by_email_or_none(email=user_to_create.email):
             raise EmailAlreadyTakenException()
 
-        if await self._user_repo.get_by_username_or_none(
-            session=session, username=user_to_create.username
-        ):
+        if await uow.users.get_by_username_or_none(username=user_to_create.username):
             raise UserNameAlreadyTakenException()
 
         create_user_record = CreateUserRecordDTO(
@@ -46,44 +36,35 @@ class UserService(IUserService):
             password_hash=get_password_hash(user_to_create.password),
         )
         try:
-            return await self._user_repo.add(
-                session=session, create_item=create_user_record
-            )
-        except (NoResultFound, MultipleResultsFound) as exc:
+            return await uow.users.add(create_item=create_user_record)
+        except Exception as exc:
             raise UserCreateException() from exc
 
-    async def get_user_by_id(self, session: AsyncSession, user_id: int) -> UserDTO:
-        return await self._user_repo.get(session=session, user_id=user_id)
+    async def get_user_by_id(self, uow: IUnitOfWork, user_id: int) -> UserDTO:
+        return await uow.users.get(user_id=user_id)
 
-    async def get_user_by_email(self, session: AsyncSession, email: str) -> UserDTO:
-        return await self._user_repo.get_by_email(session=session, email=email)
+    async def get_user_by_email(self, uow: IUnitOfWork, email: str) -> UserDTO:
+        return await uow.users.get_by_email(email=email)
 
-    async def get_user_by_username(
-        self, session: AsyncSession, username: str
-    ) -> UserDTO:
-        return await self._user_repo.get_by_username(session=session, username=username)
+    async def get_user_by_username(self, uow: IUnitOfWork, username: str) -> UserDTO:
+        return await uow.users.get_by_username(username=username)
 
     async def get_users_by_ids(
-        self, session: AsyncSession, user_ids: Collection[int]
+        self, uow: IUnitOfWork, user_ids: Collection[int]
     ) -> list[UserDTO]:
-        return await self._user_repo.list_by_users(session=session, user_ids=user_ids)
+        return await uow.users.list_by_users(user_ids=user_ids)
 
     async def update_user(
-        self,
-        session: AsyncSession,
-        current_user: UserDTO,
-        user_to_update: UpdateUserDTO,
+        self, uow: IUnitOfWork, current_user: UserDTO, user_to_update: UpdateUserDTO
     ) -> UpdatedUserDTO:
         if user_to_update.username and user_to_update.username != current_user.username:
-            if await self._user_repo.get_by_username_or_none(
-                session=session, username=user_to_update.username
+            if await uow.users.get_by_username_or_none(
+                username=user_to_update.username
             ):
                 raise UserNameAlreadyTakenException()
 
         if user_to_update.email and user_to_update.email != current_user.email:
-            if await self._user_repo.get_by_email_or_none(
-                session=session, email=user_to_update.email
-            ):
+            if await uow.users.get_by_email_or_none(email=user_to_update.email):
                 raise EmailAlreadyTakenException()
 
         update_record = UpdateUserRecordDTO(
@@ -97,8 +78,8 @@ class UserService(IUserService):
             bio=user_to_update.bio,
             image_url=user_to_update.image_url,
         )
-        updated_user = await self._user_repo.update(
-            session=session, user_id=current_user.id, update_item=update_record
+        updated_user = await uow.users.update(
+            user_id=current_user.id, update_item=update_record
         )
         return UpdatedUserDTO(
             id=updated_user.id,

@@ -1,18 +1,13 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from conduit.domain.dtos.tag import TagDTO, TagRecordDTO
-from conduit.domain.repositories.tag import ITagRepository
 from conduit.domain.services.tag import ITagService
+from conduit.domain.uow import IUnitOfWork
 
 
 class TagService(ITagService):
     """Service to handle article tags logic."""
 
-    def __init__(self, tag_repo: ITagRepository):
-        self._tag_repo = tag_repo
-
-    async def get_all_tags(self, session: AsyncSession) -> list[TagDTO]:
-        tags = await self._tag_repo.list(session=session)
+    async def get_all_tags(self, uow: IUnitOfWork) -> list[TagDTO]:
+        tags = await uow.tags.list()
         return [self._to_tag_dto(tag) for tag in tags]
 
     @staticmethod

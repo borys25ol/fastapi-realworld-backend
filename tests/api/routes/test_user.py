@@ -1,9 +1,8 @@
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.domain.dtos.user import UserDTO
-from conduit.infrastructure.repositories.user import UserRepository
+from conduit.domain.uow import IUnitOfWork
 from conduit.services.password import verify_password
 
 
@@ -70,17 +69,14 @@ async def test_user_can_update_own_profile(
 
 @pytest.mark.anyio
 async def test_user_can_change_password(
-    authorized_test_client: AsyncClient,
-    test_user: UserDTO,
-    session: AsyncSession,
-    user_repository: UserRepository,
+    authorized_test_client: AsyncClient, test_user: UserDTO, uow: IUnitOfWork
 ) -> None:
     response = await authorized_test_client.put(
         url="/user", json={"user": {"password": "new_password"}}
     )
     assert response.status_code == 200
 
-    user = await user_repository.get_by_email(session=session, email=test_user.email)
+    user = await uow.users.get_by_email(email=test_user.email)
     assert verify_password(
         plain_password="new_password", hashed_password=user.password_hash
     )

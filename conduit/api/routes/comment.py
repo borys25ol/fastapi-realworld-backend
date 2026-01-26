@@ -6,8 +6,8 @@ from conduit.api.schemas.responses.comment import CommentResponse, CommentsListR
 from conduit.core.dependencies import (
     CurrentOptionalUser,
     CurrentUser,
-    DBSession,
     ICommentService,
+    UnitOfWork,
 )
 
 router = APIRouter()
@@ -16,7 +16,7 @@ router = APIRouter()
 @router.get("/{slug}/comments", response_model=CommentsListResponse)
 async def get_comments(
     slug: str,
-    session: DBSession,
+    uow: UnitOfWork,
     current_user: CurrentOptionalUser,
     comment_service: ICommentService,
 ) -> CommentsListResponse:
@@ -24,7 +24,7 @@ async def get_comments(
     Get comments for an article.
     """
     comment_list_dto = await comment_service.get_article_comments(
-        session=session, slug=slug, current_user=current_user
+        uow=uow, slug=slug, current_user=current_user
     )
     return CommentsListResponse.from_dto(dto=comment_list_dto)
 
@@ -33,7 +33,7 @@ async def get_comments(
 async def create_comment(
     slug: str,
     payload: CreateCommentRequest,
-    session: DBSession,
+    uow: UnitOfWork,
     current_user: CurrentUser,
     comment_service: ICommentService,
 ) -> CommentResponse:
@@ -41,7 +41,7 @@ async def create_comment(
     Create a comment for an article.
     """
     comment_dto = await comment_service.create_article_comment(
-        session=session,
+        uow=uow,
         slug=slug,
         comment_to_create=payload.to_dto(),
         current_user=current_user,
@@ -52,7 +52,7 @@ async def create_comment(
 @router.delete("/{slug}/comments/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_comment(
     slug: str,
-    session: DBSession,
+    uow: UnitOfWork,
     current_user: CurrentUser,
     comment_service: ICommentService,
     comment_id: int = Path(..., alias="id"),
@@ -61,5 +61,5 @@ async def delete_comment(
     Delete a comment for an article.
     """
     await comment_service.delete_article_comment(
-        session=session, slug=slug, comment_id=comment_id, current_user=current_user
+        uow=uow, slug=slug, comment_id=comment_id, current_user=current_user
     )

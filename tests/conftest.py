@@ -1,5 +1,5 @@
 import os
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
 from datetime import datetime
 from typing import TypeAlias
 
@@ -7,19 +7,18 @@ import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
 from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
 from conduit.app import create_app
 from conduit.core.config import get_app_settings
 from conduit.core.container import Container
-from conduit.core.dependencies import IArticleService, IAuthTokenService
 from conduit.core.settings.base import BaseAppSettings
 from conduit.domain.dtos.article import ArticleDTO, CreateArticleDTO
 from conduit.domain.dtos.user import CreateUserDTO, UserDTO
-from conduit.domain.repositories.article import IArticleRepository
-from conduit.domain.repositories.user import IUserRepository
+from conduit.domain.services.article import IArticleService
+from conduit.domain.services.auth_token import IAuthTokenService
 from conduit.domain.services.user import IUserService
+from conduit.domain.uow import IUnitOfWork
 from conduit.infrastructure.models import Base
 
 SetupFixture: TypeAlias = None
@@ -76,19 +75,10 @@ def di_container(settings: BaseAppSettings) -> Container:
 
 
 @pytest.fixture
-async def session(di_container: Container) -> AsyncSession:
-    async with di_container.context_session() as session:
-        yield session
-
-
-@pytest.fixture
-def user_repository(di_container: Container) -> IUserRepository:
-    return di_container.user_repository()
-
-
-@pytest.fixture
-def article_repository(di_container: Container) -> IArticleRepository:
-    return di_container.article_repository()
+async def uow(di_container: Container) -> AsyncGenerator[IUnitOfWork, None]:
+    unit_of_work = di_container.unit_of_work()
+    async with unit_of_work:
+        yield unit_of_work
 
 
 @pytest.fixture
@@ -137,22 +127,20 @@ def not_exists_user() -> UserDTO:
 
 @pytest.fixture
 async def test_user(
-    session: AsyncSession, user_service: IUserService, user_to_create: CreateUserDTO
+    uow: IUnitOfWork, user_service: IUserService, user_to_create: CreateUserDTO
 ) -> UserDTO:
-    return await user_service.create_user(
-        session=session, user_to_create=user_to_create
-    )
+    return await user_service.create_user(uow=uow, user_to_create=user_to_create)
 
 
 @pytest.fixture
 async def test_article(
-    session: AsyncSession,
+    uow: IUnitOfWork,
     article_service: IArticleService,
     article_to_create: CreateArticleDTO,
     test_user: UserDTO,
 ) -> ArticleDTO:
     return await article_service.create_new_article(
-        session=session, author_id=test_user.id, article_to_create=article_to_create
+        uow=uow, author_id=test_user.id, article_to_create=article_to_create
     )
 
 
@@ -169,7 +157,7 @@ async def not_exists_jwt_token(
 
 
 @pytest.fixture
-async def test_client(application: FastAPI) -> AsyncClient:
+async def test_client(application: FastAPI) -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(
         app=application,
         base_url="http://testserver/api",
@@ -179,7 +167,9 @@ async def test_client(application: FastAPI) -> AsyncClient:
 
 
 @pytest.fixture
-async def authorized_test_client(application: FastAPI, jwt_token: str) -> AsyncClient:
+async def authorized_test_client(
+    application: FastAPI, jwt_token: str
+) -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(
         app=application,
         base_url="http://testserver/api",

@@ -1,22 +1,21 @@
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.domain.dtos.user import UserDTO
-from conduit.infrastructure.repositories.user import UserRepository
+from conduit.domain.uow import IUnitOfWork
 from conduit.services.password import verify_password
 
 
 @pytest.mark.anyio
 async def test_user_success_registration(
-    test_client: AsyncClient, session: AsyncSession, user_repository: UserRepository
+    test_client: AsyncClient, uow: IUnitOfWork
 ) -> None:
     email, username, password = ("success@gmail.com", "success", "password")
     payload = {"user": {"email": email, "username": username, "password": password}}
     response = await test_client.post("/users", json=payload)
     assert response.status_code == 200
 
-    user = await user_repository.get_by_email(session=session, email=email)
+    user = await uow.users.get_by_email(email=email)
     assert user.email == email
     assert user.username == username
     assert verify_password(plain_password=password, hashed_password=user.password_hash)

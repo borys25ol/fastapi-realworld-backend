@@ -1,21 +1,21 @@
 from typing import Annotated
 
 from fastapi import Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from conduit.api.schemas.requests.article import ArticlesFilters, ArticlesPagination
 from conduit.core.providers import (
     get_article_service,
     get_auth_token_service,
     get_comment_service,
-    get_db_session,
     get_profile_service,
     get_tag_service,
+    get_uow,
     get_user_auth_service,
     get_user_service,
 )
 from conduit.core.security import HTTPTokenHeader
 from conduit.domain.dtos.user import UserDTO
+from conduit.domain.uow import IUnitOfWork
 from conduit.services.article import ArticleService
 from conduit.services.auth import UserAuthService
 from conduit.services.auth_token import AuthTokenService
@@ -40,7 +40,7 @@ token_security_optional = HTTPTokenHeader(
 JWTToken = Annotated[str, Depends(token_security)]
 JWTTokenOptional = Annotated[str, Depends(token_security_optional)]
 
-DBSession = Annotated[AsyncSession, Depends(get_db_session)]
+UnitOfWork = Annotated[IUnitOfWork, Depends(get_uow)]
 
 IAuthTokenService = Annotated[AuthTokenService, Depends(get_auth_token_service)]
 IUserAuthService = Annotated[UserAuthService, Depends(get_user_auth_service)]
@@ -70,7 +70,7 @@ def get_articles_filters(
 
 async def get_current_user_or_none(
     token: JWTTokenOptional,
-    session: DBSession,
+    uow: UnitOfWork,
     auth_token_service: IAuthTokenService,
     user_service: IUserService,
 ) -> UserDTO | None:
@@ -78,20 +78,20 @@ async def get_current_user_or_none(
         return None
     jwt_user = auth_token_service.parse_jwt_token(token=token)
     current_user_dto = await user_service.get_user_by_id(
-        session=session, user_id=jwt_user.user_id
+        uow=uow, user_id=jwt_user.user_id
     )
     return current_user_dto
 
 
 async def get_current_user(
     token: JWTToken,
-    session: DBSession,
+    uow: UnitOfWork,
     auth_token_service: IAuthTokenService,
     user_service: IUserService,
 ) -> UserDTO:
     jwt_user = auth_token_service.parse_jwt_token(token=token)
     current_user_dto = await user_service.get_user_by_id(
-        session=session, user_id=jwt_user.user_id
+        uow=uow, user_id=jwt_user.user_id
     )
     return current_user_dto
 

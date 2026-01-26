@@ -1,7 +1,8 @@
 import datetime
+from types import TracebackType
+from typing import cast
 
 import pytest
-from sqlalchemy.exc import NoResultFound
 
 from conduit.core.exceptions import (
     ArticleCreateException,
@@ -10,7 +11,17 @@ from conduit.core.exceptions import (
 )
 from conduit.domain.dtos.article import ArticleRecordDTO, CreateArticleDTO
 from conduit.domain.dtos.comment import CreateCommentDTO
+from conduit.domain.dtos.profile import ProfileDTO
 from conduit.domain.dtos.user import CreateUserDTO, UserDTO
+from conduit.domain.repositories.article import IArticleRepository
+from conduit.domain.repositories.article_tag import IArticleTagRepository
+from conduit.domain.repositories.comment import ICommentRepository
+from conduit.domain.repositories.favorite import IFavoriteRepository
+from conduit.domain.repositories.follower import IFollowerRepository
+from conduit.domain.repositories.tag import ITagRepository
+from conduit.domain.repositories.user import IUserRepository
+from conduit.domain.services.profile import IProfileService
+from conduit.domain.uow import IUnitOfWork
 from conduit.services.article import ArticleService
 from conduit.services.comment import CommentService
 from conduit.services.user import UserService
@@ -18,7 +29,7 @@ from conduit.services.user import UserService
 
 class _FailingArticleRepo:
     async def add(self, *_: object, **__: object) -> ArticleRecordDTO:
-        raise NoResultFound()
+        raise RuntimeError("fail")
 
 
 class _FailingUserRepo:
@@ -29,12 +40,12 @@ class _FailingUserRepo:
         return None
 
     async def add(self, *_: object, **__: object) -> UserDTO:
-        raise NoResultFound()
+        raise RuntimeError("fail")
 
 
 class _FailingCommentRepo:
     async def add(self, *_: object, **__: object) -> object:
-        raise NoResultFound()
+        raise RuntimeError("fail")
 
 
 class _ArticleRepo:
@@ -64,36 +75,102 @@ class _NoopFavoriteRepo:
         return False
 
 
-class _NoopProfileService:
-    async def get_profile_by_user_id(self, *_: object, **__: object) -> object:
+class _NoopProfileService(IProfileService):
+    async def get_profile_by_username(
+        self, uow: IUnitOfWork, username: str, current_user: UserDTO | None = None
+    ) -> ProfileDTO:
         raise AssertionError("Not expected to be called")
+
+    async def get_profile_by_user_id(
+        self, uow: IUnitOfWork, user_id: int, current_user: UserDTO | None = None
+    ) -> ProfileDTO:
+        raise AssertionError("Not expected to be called")
+
+    async def get_profiles_by_user_ids(
+        self, uow: IUnitOfWork, user_ids: list[int], current_user: UserDTO | None
+    ) -> list[ProfileDTO]:
+        raise AssertionError("Not expected to be called")
+
+    async def follow_user(
+        self, uow: IUnitOfWork, username: str, current_user: UserDTO
+    ) -> None:
+        raise AssertionError("Not expected to be called")
+
+    async def unfollow_user(
+        self, uow: IUnitOfWork, username: str, current_user: UserDTO
+    ) -> None:
+        raise AssertionError("Not expected to be called")
+
+
+class _MissingRepo:
+    def __getattr__(self, name: str) -> object:
+        raise AssertionError(f"Missing repo dependency: {name}")
+
+
+class _FakeUnitOfWork(IUnitOfWork):
+    def __init__(
+        self,
+        users: IUserRepository | None = None,
+        articles: IArticleRepository | None = None,
+        article_tags: IArticleTagRepository | None = None,
+        favorites: IFavoriteRepository | None = None,
+        comments: ICommentRepository | None = None,
+        followers: IFollowerRepository | None = None,
+        tags: ITagRepository | None = None,
+    ) -> None:
+        missing_repo = _MissingRepo()
+        self.users = cast(IUserRepository, users or missing_repo)
+        self.articles = cast(IArticleRepository, articles or missing_repo)
+        self.article_tags = cast(IArticleTagRepository, article_tags or missing_repo)
+        self.favorites = cast(IFavoriteRepository, favorites or missing_repo)
+        self.comments = cast(ICommentRepository, comments or missing_repo)
+        self.followers = cast(IFollowerRepository, followers or missing_repo)
+        self.tags = cast(ITagRepository, tags or missing_repo)
+
+    async def __aenter__(self) -> "_FakeUnitOfWork":
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        return None
+
+    async def commit(self) -> None:
+        return None
+
+    async def rollback(self) -> None:
+        return None
 
 
 @pytest.mark.anyio
 async def test_article_create_raises_create_exception() -> None:
-    service = ArticleService(
-        article_repo=_FailingArticleRepo(),
-        article_tag_repo=_NoopArticleTagRepo(),
-        favorite_repo=_NoopFavoriteRepo(),
-        profile_service=_NoopProfileService(),
+    service = ArticleService(profile_service=_NoopProfileService())
+    uow = _FakeUnitOfWork(
+        articles=cast(IArticleRepository, _FailingArticleRepo()),
+        article_tags=cast(IArticleTagRepository, _NoopArticleTagRepo()),
+        favorites=cast(IFavoriteRepository, _NoopFavoriteRepo()),
     )
     create_article_dto = CreateArticleDTO(
         title="title", description="desc", body="body", tags=[]
     )
     with pytest.raises(ArticleCreateException):
         await service.create_new_article(
-            session=None, author_id=1, article_to_create=create_article_dto
+            uow=uow, author_id=1, article_to_create=create_article_dto
         )
 
 
 @pytest.mark.anyio
 async def test_user_create_raises_create_exception() -> None:
-    service = UserService(user_repo=_FailingUserRepo())
+    service = UserService()
+    uow = _FakeUnitOfWork(users=cast(IUserRepository, _FailingUserRepo()))
     create_user_dto = CreateUserDTO(
         username="user", email="user@example.com", password="secret"
     )
     with pytest.raises(UserCreateException):
-        await service.create_user(session=None, user_to_create=create_user_dto)
+        await service.create_user(uow=uow, user_to_create=create_user_dto)
 
 
 @pytest.mark.anyio
@@ -107,14 +184,14 @@ async def test_comment_create_raises_create_exception() -> None:
         created_at=datetime.datetime.now(),
     )
     current_user.id = 1
-    service = CommentService(
-        article_repo=_ArticleRepo(),
-        comment_repo=_FailingCommentRepo(),
-        profile_service=_NoopProfileService(),
+    service = CommentService(profile_service=_NoopProfileService())
+    uow = _FakeUnitOfWork(
+        articles=cast(IArticleRepository, _ArticleRepo()),
+        comments=cast(ICommentRepository, _FailingCommentRepo()),
     )
     with pytest.raises(CommentCreateException):
         await service.create_article_comment(
-            session=None,
+            uow=uow,
             slug="article-slug",
             comment_to_create=CreateCommentDTO(body="body"),
             current_user=current_user,

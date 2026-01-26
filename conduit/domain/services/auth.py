@@ -1,5 +1,4 @@
 import abc
-from typing import Any
 
 from conduit.domain.dtos.user import (
     CreatedUserDTO,
@@ -7,16 +6,16 @@ from conduit.domain.dtos.user import (
     LoggedInUserDTO,
     LoginUserDTO,
 )
+from conduit.domain.uow import IUnitOfWork
 
 
 class IUserAuthService(abc.ABC):
-
     @abc.abstractmethod
     async def sign_up_user(
-        self, session: Any, user_to_create: CreateUserDTO
+        self, uow: IUnitOfWork, user_to_create: CreateUserDTO
     ) -> CreatedUserDTO: ...
 
     @abc.abstractmethod
     async def sign_in_user(
-        self, session: Any, user_to_login: LoginUserDTO
+        self, uow: IUnitOfWork, user_to_login: LoginUserDTO
     ) -> LoggedInUserDTO: ...
