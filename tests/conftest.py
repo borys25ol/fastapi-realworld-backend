@@ -60,6 +60,18 @@ def create_tables(settings: BaseAppSettings) -> Generator[None, None, None]:
     Base.metadata.drop_all(bind=engine)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _raise_rate_limit_for_tests() -> Generator[None, None, None]:
+    # The in-memory rate limiter accumulates across the session-scoped app.
+    # Raise the ceiling so functional tests never hit 429 — the rate-limiter
+    # bug itself is documented separately in test_bug_probes.py and the README.
+    from conduit.api.middlewares import RateLimitingMiddleware
+    original = RateLimitingMiddleware.rate_limit_requests
+    RateLimitingMiddleware.rate_limit_requests = 100_000
+    yield
+    RateLimitingMiddleware.rate_limit_requests = original
+
+
 @pytest.fixture(scope="session")
 def application(create_test_db: SetupFixture) -> FastAPI:
     return create_app()

@@ -1,18 +1,15 @@
 # ![RealWorld Example App](.github/assets/logo.png)
 
-
 > ### Python / FastAPI codebase containing real world examples (CRUD, auth, middlewares advanced patterns, etc.) that adheres to the [RealWorld](https://github.com/gothinkster/realworld) spec and API.
-
 
 ### [Demo](https://demo.realworld.io/)&nbsp;&nbsp;&nbsp;&nbsp;[RealWorld](https://github.com/gothinkster/realworld)
 
+> **SDET Assignment** — see [SDET_ASSIGNMENT.md](./SDET_ASSIGNMENT.md) for test coverage summary, bugs found, AI usage, and bonus answer.
 
-This codebase was created to demonstrate a fully fledged backend application built with **[FastAPI](https://fastapi.tiangolo.com/)** including CRUD operations, authentication, routing, and more.
-
-For more information on how this works with other frontends/backends, head over to the [RealWorld](https://github.com/gothinkster/realworld) repo.
-
+---
 
 ## Description
+
 This project is a Python-based API that uses PostgreSQL as its database.
 It is built with FastAPI, a modern, fast (high-performance), web framework for building APIs with Python 3 based on standard Python type hints.
 
@@ -47,8 +44,7 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Configuration
---------------
+## Configuration
 
 Replace `.env.example` with real `.env`, changing placeholders
 
@@ -62,9 +58,9 @@ POSTGRES_PORT=your_postgres_port
 JWT_SECRET_KEY=your_jwt_secret_key
 ```
 
-Run with Docker
---------------
-You must have ``docker`` and ``docker-compose`` installed on your machine to start this application.
+## Run with Docker
+
+You must have `docker` and `docker-compose` installed on your machine to start this application.
 
 Setup PostgreSQL database with docker-compose:
 
@@ -96,12 +92,11 @@ And after that run migrations:
 docker exec -it conduit-api alembic upgrade head
 ```
 
-Run tests
----------
+## Run tests
 
-Tests for this project are defined in the ``tests/`` folder.
+Tests for this project are defined in the `tests/` folder.
 
-For running tests, you can have to create separate `.env.test` file the same as `.env` file, but with different database name.:
+For running tests, create a separate `.env.test` file (same as `.env` but with a different database name):
 
 ```
 POSTGRES_DB=conduit_test
@@ -119,8 +114,7 @@ Or run the tests with coverage:
 make test-cov
 ```
 
-Run Conduit Postman collection tests
----------
+## Run Conduit Postman collection tests
 
 For running tests for local application:
 
@@ -134,6 +128,6 @@ For running tests for fully Dockerized application:
 APIURL=http://127.0.0.1:8080/api ./postman/run-api-tests.sh
 ```
 
-Web routes
------------
-    All routes are available on / or /redoc paths with Swagger or ReDoc.
+## Web routes
+
+All routes are available on `/` or `/redoc` paths with Swagger or ReDoc.
